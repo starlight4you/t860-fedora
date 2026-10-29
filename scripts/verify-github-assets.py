@@ -17,7 +17,7 @@ release=next(x for x in releases if x['tag_name']==a.tag)
 remote={x['name']:x for x in release['assets']}
 verified=0; pending=[]
 for path in sorted(a.assets.iterdir()):
-    if not path.is_file(): continue
+    if not path.is_file() or path.name.startswith('.'): continue
     asset=remote.get(path.name)
     if asset is None or asset['state']!='uploaded': pending.append(path.name); continue
     h=hashlib.sha256()
