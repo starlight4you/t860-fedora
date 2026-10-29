@@ -1,0 +1,38 @@
+{
+  "format": "t860-recovery-stream-v1",
+  "release": "v2026.10.29-gpu18",
+  "device": "SM-T860",
+  "kernel": "6.18.59-t860-gpu18",
+  "prerelease": true,
+  "rootfs_bytes": 19327352832,
+  "rootfs_raw_sha256": "4ab4ade5a9b95b5fa621ffdae2b654eb2ef41486eb5f805b914ba7b677748934",
+  "rootfs_gzip_sha256": "218aace0cf54bbe00dff84a80198b9c201138cfa7cac5637d81c31e9d58693f1",
+  "installer_bundle": "T860-Fedora44-GPU18-installer.tar.gz",
+  "rootfs_parts": [
+    "T860-Fedora44-GPU18-rootfs.img.gz.part000",
+    "T860-Fedora44-GPU18-rootfs.img.gz.part001",
+    "T860-Fedora44-GPU18-rootfs.img.gz.part002"
+  ],
+  "assets": [
+    {
+      "name": "T860-Fedora44-GPU18-installer.tar.gz",
+      "bytes": 18342567,
+      "sha256": "9d071f316071acf38de679b41dbfe6fcd79717e4158eead372910bda04a3bd0b"
+    },
+    {
+      "name": "T860-Fedora44-GPU18-rootfs.img.gz.part000",
+      "bytes": 1800000000,
+      "sha256": "7d2050feef3bdab73c14698ad1477b4bc76f9cef0fe724bacc6c92b576ac247d"
+    },
+    {
+      "name": "T860-Fedora44-GPU18-rootfs.img.gz.part001",
+      "bytes": 1800000000,
+      "sha256": "db41d80c3f1aca17bf6a0891e455dde72241359f31d400c3c504a4e4a5263e8b"
+    },
+    {
+      "name": "T860-Fedora44-GPU18-rootfs.img.gz.part002",
+      "bytes": 1761929796,
+      "sha256": "50ca7a017fe9ba6d9995f7e438ecc681efafd4fa8d40543b626dac589385dd78"
+    }
+  ]
+}
