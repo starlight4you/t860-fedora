@@ -9,3 +9,4 @@ android-backup*/
 release/*
 !release/.gitkeep
 private/
+.DS_Store
