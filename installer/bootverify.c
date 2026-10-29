@@ -22,7 +22,8 @@ int main(int argc, char **argv) {
     FILE *f;
     unsigned char *b;
     long size;
-    if (argc!=3 || !(f=fopen(argv[1],"rb"))) return 1;
+    if (argc!=3 || (strcmp(argv[2],"stock") && strcmp(argv[2],"uefi")) ||
+        !(f=fopen(argv[1],"rb"))) return 1;
     if (fseek(f,0,SEEK_END) || (size=ftell(f))!=67108864 || fseek(f,0,SEEK_SET)) return 2;
     b=malloc((size_t)size);
     if (!b || fread(b,1,(size_t)size,f)!=(size_t)size) return 3;
@@ -34,6 +35,7 @@ int main(int argc, char **argv) {
         len<=(uint64_t)size-64-offset && !memcmp(b+offset,"AVB0",4) &&
         contains(b+4096,128,"UNCOMPRESSED_IMG") && contains(b,(size_t)size,"SEANDROIDENFORCE");
     if (!strcmp(argv[2],"uefi")) ok &= contains(b,(size_t)size,"_FVH");
+    else ok &= !contains(b,(size_t)size,"_FVH");
     free(b);
     puts(ok ? "Samsung boot structure verified" : "Unsupported or corrupt Samsung boot image");
     return ok ? 0 : 4;
