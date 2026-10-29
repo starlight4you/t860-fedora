@@ -21,10 +21,11 @@ e2fsck -pf "$STAGE/fedora.img"
 umount "$STAGE/root"
 rm "$STAGE/rootfs.img"
 
+rm -rf "$STAGE/esp"
 mkdir -p "$STAGE/esp/EFI/BOOT" "$STAGE/esp/loader/entries"
 cp /workspace/build/BOOTAA64.EFI "$STAGE/esp/EFI/BOOT/BOOTAA64.EFI"
-cp /workspace/build/gpu18-lts/Image "$STAGE/esp/Image-gpu18"
-cp /workspace/build/gpu18-lts/gts6-native.dtb "$STAGE/esp/gts6-native.dtb"
+cp /workspace/build/gpu18-lts/Image "$STAGE/esp/Image"
+cp /workspace/build/gpu18-lts/gts6-native.dtb "$STAGE/esp/gts6.dtb"
 cp /workspace/build/gpu18-lts/gts6.dtb "$STAGE/esp/gts6-safe.dtb"
 cat > "$STAGE/esp/loader/loader.conf" <<'EOF'
 default fedora.conf
@@ -35,16 +36,16 @@ reboot-on-error yes
 EOF
 cat > "$STAGE/esp/loader/entries/fedora.conf" <<'EOF'
 title Fedora 44 KDE - SM-T860 GPU18 native display
-linux /Image-gpu18
-devicetree /gts6-native.dtb
+linux /Image
+devicetree /gts6.dtb
 options acpi=off efi=novamap fw_devlink=permissive clk_ignore_unused pd_ignore_unused console=tty0 loglevel=6 root=/dev/sda30 rootfstype=ext4 rw rootwait selinux=0
 EOF
-sed -e 's/GPU18 native display/GPU18 simpledrm fallback/' -e 's/gts6-native.dtb/gts6-safe.dtb/' \
+sed -e 's/GPU18 native display/GPU18 simpledrm fallback/' -e 's/gts6.dtb/gts6-safe.dtb/' \
     "$STAGE/esp/loader/entries/fedora.conf" > "$STAGE/esp/loader/entries/fedora-safe.conf"
 truncate -s 419430400 "$STAGE/cache.img"
 mkfs.vfat -F 32 -n T860FEDORA "$STAGE/cache.img"
 mcopy -i "$STAGE/cache.img" -s "$STAGE/esp/EFI" "$STAGE/esp/loader" ::/
-for name in Image-gpu18 gts6-native.dtb gts6-safe.dtb; do
+for name in Image gts6.dtb gts6-safe.dtb; do
     mcopy -i "$STAGE/cache.img" "$STAGE/esp/$name" ::/
 done
 mdir -i "$STAGE/cache.img" ::/
