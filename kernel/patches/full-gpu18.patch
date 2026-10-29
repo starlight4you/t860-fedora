@@ -1,0 +1,6044 @@
+--- a/arch/arm64/boot/dts/qcom/Makefile
++++ b/arch/arm64/boot/dts/qcom/Makefile
+@@ -352,3 +352,7 @@
+ dtb-$(CONFIG_ARCH_QCOM)	+= x1p42100-hp-omnibook-x14.dtb x1p42100-hp-omnibook-x14-el2.dtb
+ x1p42100-lenovo-thinkbook-16-el2-dtbs	:= x1p42100-lenovo-thinkbook-16.dtb x1-el2.dtbo
+ dtb-$(CONFIG_ARCH_QCOM)	+= x1p42100-lenovo-thinkbook-16.dtb x1p42100-lenovo-thinkbook-16-el2.dtb
++
++dtb-$(CONFIG_ARCH_QCOM) += sm8150-samsung-gts6lwifi.dtb
++
++dtb-$(CONFIG_ARCH_QCOM) += sm8150-samsung-gts6lwifi-native.dtb
+--- a/drivers/clk/qcom/gcc-sm8150.c
++++ b/drivers/clk/qcom/gcc-sm8150.c
+@@ -1159,7 +1159,7 @@
+ 
+ static struct clk_branch gcc_aggre_ufs_phy_axi_clk = {
+ 	.halt_reg = 0x770c0,
+-	.halt_check = BRANCH_HALT,
++	.halt_check = BRANCH_HALT_SKIP,
+ 	.hwcg_reg = 0x770c0,
+ 	.hwcg_bit = 1,
+ 	.clkr = {
+@@ -1197,7 +1197,7 @@
+ 
+ static struct clk_branch gcc_aggre_usb3_prim_axi_clk = {
+ 	.halt_reg = 0xf07c,
+-	.halt_check = BRANCH_HALT,
++	.halt_check = BRANCH_HALT_SKIP,
+ 	.clkr = {
+ 		.enable_reg = 0xf07c,
+ 		.enable_mask = BIT(0),
+@@ -1307,7 +1307,7 @@
+ 
+ static struct clk_branch gcc_cfg_noc_usb3_prim_axi_clk = {
+ 	.halt_reg = 0xf078,
+-	.halt_check = BRANCH_HALT,
++	.halt_check = BRANCH_HALT_SKIP,
+ 	.clkr = {
+ 		.enable_reg = 0xf078,
+ 		.enable_mask = BIT(0),
+@@ -2922,7 +2922,7 @@
+ 
+ static struct clk_branch gcc_ufs_phy_ahb_clk = {
+ 	.halt_reg = 0x77014,
+-	.halt_check = BRANCH_HALT,
++	.halt_check = BRANCH_HALT_SKIP,
+ 	.hwcg_reg = 0x77014,
+ 	.hwcg_bit = 1,
+ 	.clkr = {
+@@ -2937,7 +2937,7 @@
+ 
+ static struct clk_branch gcc_ufs_phy_axi_clk = {
+ 	.halt_reg = 0x77010,
+-	.halt_check = BRANCH_HALT,
++	.halt_check = BRANCH_HALT_SKIP,
+ 	.hwcg_reg = 0x77010,
+ 	.hwcg_bit = 1,
+ 	.clkr = {
+@@ -2975,7 +2975,7 @@
+ 
+ static struct clk_branch gcc_ufs_phy_ice_core_clk = {
+ 	.halt_reg = 0x7705c,
+-	.halt_check = BRANCH_HALT,
++	.halt_check = BRANCH_HALT_SKIP,
+ 	.hwcg_reg = 0x7705c,
+ 	.hwcg_bit = 1,
+ 	.clkr = {
+@@ -3013,7 +3013,7 @@
+ 
+ static struct clk_branch gcc_ufs_phy_phy_aux_clk = {
+ 	.halt_reg = 0x77090,
+-	.halt_check = BRANCH_HALT,
++	.halt_check = BRANCH_HALT_SKIP,
+ 	.hwcg_reg = 0x77090,
+ 	.hwcg_bit = 1,
+ 	.clkr = {
+@@ -3090,7 +3090,7 @@
+ 
+ static struct clk_branch gcc_ufs_phy_unipro_core_clk = {
+ 	.halt_reg = 0x77058,
+-	.halt_check = BRANCH_HALT,
++	.halt_check = BRANCH_HALT_SKIP,
+ 	.hwcg_reg = 0x77058,
+ 	.hwcg_bit = 1,
+ 	.clkr = {
+@@ -3128,7 +3128,7 @@
+ 
+ static struct clk_branch gcc_usb30_prim_master_clk = {
+ 	.halt_reg = 0xf010,
+-	.halt_check = BRANCH_HALT,
++	.halt_check = BRANCH_HALT_SKIP,
+ 	.clkr = {
+ 		.enable_reg = 0xf010,
+ 		.enable_mask = BIT(0),
+@@ -3145,7 +3145,7 @@
+ 
+ static struct clk_branch gcc_usb30_prim_mock_utmi_clk = {
+ 	.halt_reg = 0xf018,
+-	.halt_check = BRANCH_HALT,
++	.halt_check = BRANCH_HALT_SKIP,
+ 	.clkr = {
+ 		.enable_reg = 0xf018,
+ 		.enable_mask = BIT(0),
+@@ -3235,7 +3235,7 @@
+ 
+ static struct clk_branch gcc_usb3_prim_phy_aux_clk = {
+ 	.halt_reg = 0xf050,
+-	.halt_check = BRANCH_HALT,
++	.halt_check = BRANCH_HALT_SKIP,
+ 	.clkr = {
+ 		.enable_reg = 0xf050,
+ 		.enable_mask = BIT(0),
+@@ -3252,7 +3252,7 @@
+ 
+ static struct clk_branch gcc_usb3_prim_phy_com_aux_clk = {
+ 	.halt_reg = 0xf054,
+-	.halt_check = BRANCH_HALT,
++	.halt_check = BRANCH_HALT_SKIP,
+ 	.clkr = {
+ 		.enable_reg = 0xf054,
+ 		.enable_mask = BIT(0),
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gpu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gpu.c
+@@ -2512,7 +2512,10 @@
+ 	 * fine
+ 	 */
+ 	if (ret == -ENOENT) {
+-		return 0;
++		if (!of_machine_is_compatible("samsung,gts6lwifi"))
++			return 0;
++		/* The board omits the inaccessible fuse; keep conservative OPPs. */
++		speedbin = 0;
+ 	} else if (ret) {
+ 		dev_err_probe(dev, ret,
+ 			      "failed to read speed-bin. Some OPPs may not be supported by hardware\n");
+--- a/drivers/gpu/drm/msm/adreno/adreno_device.c
++++ b/drivers/gpu/drm/msm/adreno/adreno_device.c
+@@ -270,7 +270,9 @@
+ static int adreno_probe(struct platform_device *pdev)
+ {
+ 	if (of_device_is_compatible(pdev->dev.of_node, "amd,imageon") ||
+-	    msm_gpu_no_components())
++	    msm_gpu_no_components() ||
++	    (of_machine_is_compatible("samsung,gts6lwifi") &&
++	     of_device_is_compatible(pdev->dev.of_node, "qcom,kgsl-3d0")))
+ 		return msm_gpu_probe(pdev, &a3xx_ops);
+ 
+ 	return component_add(&pdev->dev, &a3xx_ops);
+--- a/drivers/gpu/drm/msm/dsi/dsi.h
++++ b/drivers/gpu/drm/msm/dsi/dsi.h
+@@ -68,6 +68,8 @@
+ 					const struct mipi_dsi_msg *msg);
+ void msm_dsi_host_cmd_xfer_commit(struct mipi_dsi_host *host,
+ 					u32 dma_base, u32 len);
++void msm_dsi_host_enable_deferred_hs(struct mipi_dsi_host *host,
++				     struct msm_dsi_phy *phy);
+ int msm_dsi_host_enable(struct mipi_dsi_host *host);
+ int msm_dsi_host_disable(struct mipi_dsi_host *host);
+ void msm_dsi_host_enable_irq(struct mipi_dsi_host *host);
+--- a/drivers/gpu/drm/msm/dsi/dsi_host.c
++++ b/drivers/gpu/drm/msm/dsi/dsi_host.c
+@@ -172,6 +172,7 @@
+ 	unsigned int lanes;
+ 	enum mipi_dsi_pixel_format format;
+ 	unsigned long mode_flags;
++	bool defer_hs_clock;
+ 
+ 	/* lane data parsed via DT */
+ 	int dlane_swap;
+@@ -909,7 +910,7 @@
+ 	dsi_write(msm_host, REG_DSI_LANE_SWAP_CTRL,
+ 		  DSI_LANE_SWAP_CTRL_DLN_SWAP_SEL(msm_host->dlane_swap));
+ 
+-	if (!(flags & MIPI_DSI_CLOCK_NON_CONTINUOUS)) {
++	if (!(flags & MIPI_DSI_CLOCK_NON_CONTINUOUS) && !msm_host->defer_hs_clock) {
+ 		lane_ctrl = dsi_read(msm_host, REG_DSI_LANE_CTRL);
+ 
+ 		if (msm_dsi_phy_set_continuous_clock(phy, true))
+@@ -1722,6 +1723,9 @@
+ 	msm_host->lanes = dsi->lanes;
+ 	msm_host->format = dsi->format;
+ 	msm_host->mode_flags = dsi->mode_flags;
++	msm_host->defer_hs_clock =
++		of_device_is_compatible(dsi->dev.of_node, "samsung,ana38401-amsa05rb06") ||
++		of_device_is_compatible(dsi->dev.of_node, "samsung,ana38401-amsa05rb06-secondary");
+ 	if (dsi->dsc)
+ 		msm_host->dsc = dsi->dsc;
+ 
+@@ -2409,6 +2413,22 @@
+ 	disable_irq(msm_host->irq);
+ }
+ 
++/* ANA38401 must see LP11 while reset and TCON-ready complete. */
++void msm_dsi_host_enable_deferred_hs(struct mipi_dsi_host *host,
++				     struct msm_dsi_phy *phy)
++{
++	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
++	u32 lane_ctrl;
++
++	if (!msm_host->defer_hs_clock || !msm_host->power_on)
++		return;
++	lane_ctrl = dsi_read(msm_host, REG_DSI_LANE_CTRL);
++	if (msm_dsi_phy_set_continuous_clock(phy, true))
++		lane_ctrl &= ~DSI_LANE_CTRL_HS_REQ_SEL_PHY;
++	dsi_write(msm_host, REG_DSI_LANE_CTRL,
++		  lane_ctrl | DSI_LANE_CTRL_CLKLN_HS_FORCE_REQUEST);
++}
++
+ int msm_dsi_host_enable(struct mipi_dsi_host *host)
+ {
+ 	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
+--- a/drivers/gpu/drm/msm/dsi/dsi_manager.c
++++ b/drivers/gpu/drm/msm/dsi/dsi_manager.c
+@@ -331,6 +331,20 @@
+ 	}
+ }
+ 
++/* Enable HS only after panel prepare has waited for the TCON. */
++static void dsi_mgr_bridge_enable(struct drm_bridge *bridge)
++{
++	int id = dsi_mgr_bridge_get_id(bridge);
++	struct msm_dsi *dsi = dsi_mgr_get_dsi(id);
++	struct msm_dsi *other = dsi_mgr_get_other_dsi(id);
++
++	if (IS_BONDED_DSI() && !IS_MASTER_DSI_LINK(id))
++		return;
++	msm_dsi_host_enable_deferred_hs(dsi->host, dsi->phy);
++	if (IS_BONDED_DSI() && other)
++		msm_dsi_host_enable_deferred_hs(other->host, other->phy);
++}
++
+ static void dsi_mgr_bridge_post_disable(struct drm_bridge *bridge)
+ {
+ 	int id = dsi_mgr_bridge_get_id(bridge);
+@@ -447,6 +461,7 @@
+ static const struct drm_bridge_funcs dsi_mgr_bridge_funcs = {
+ 	.attach = dsi_mgr_bridge_attach,
+ 	.pre_enable = dsi_mgr_bridge_pre_enable,
++	.enable = dsi_mgr_bridge_enable,
+ 	.post_disable = dsi_mgr_bridge_post_disable,
+ 	.mode_set = dsi_mgr_bridge_mode_set,
+ 	.mode_valid = dsi_mgr_bridge_mode_valid,
+--- a/drivers/gpu/drm/msm/msm_gem.h
++++ b/drivers/gpu/drm/msm/msm_gem.h
+@@ -106,6 +106,9 @@
+ 	 * Protected by vm lock.  See msm_gem_lock_vm_and_obj(), for ex.
+ 	 */
+ 	struct drm_mm mm;
++
++	/** @firmware_node: Excludes boot scanout from managed VA allocation. */
++	struct drm_mm_node firmware_node;
+ 
+ 	/** @mmu: The mmu object which manages the pgtables */
+ 	struct msm_mmu *mmu;
+--- a/drivers/gpu/drm/msm/msm_gem_vma.c
++++ b/drivers/gpu/drm/msm/msm_gem_vma.c
+@@ -160,6 +160,8 @@
+ {
+ 	struct msm_gem_vm *vm = container_of(gpuvm, struct msm_gem_vm, base);
+ 
++	if (drm_mm_node_allocated(&vm->firmware_node))
++		drm_mm_remove_node(&vm->firmware_node);
+ 	drm_mm_takedown(&vm->mm);
+ 	if (vm->mmu)
+ 		vm->mmu->funcs->destroy(vm->mmu);
+@@ -833,7 +835,8 @@
+ 	}
+ 
+ 	drm_gpuvm_init(&vm->base, name, flags, drm, dummy_gem,
+-		       va_start, va_size, 0, 0, &msm_gpuvm_ops);
++		       va_start, va_size, mmu->firmware_iova,
++		       mmu->firmware_size, &msm_gpuvm_ops);
+ 	drm_gem_object_put(dummy_gem);
+ 
+ 	vm->mmu = mmu;
+@@ -841,6 +844,18 @@
+ 	vm->managed = managed;
+ 
+ 	drm_mm_init(&vm->mm, va_start, va_size);
++	if (mmu->firmware_size) {
++		vm->firmware_node.start = mmu->firmware_iova;
++		vm->firmware_node.size = mmu->firmware_size;
++		ret = drm_mm_reserve_node(&vm->mm, &vm->firmware_node);
++		if (ret) {
++			/* The caller retains MMU ownership on creation failure. */
++			vm->mmu = NULL;
++			drm_gpuvm_put(&vm->base);
++			return ERR_PTR(ret);
++		}
++	}
++
+ 
+ 	/*
+ 	 * We don't really need vm log for kernel managed VMs, as the kernel
+--- a/drivers/gpu/drm/msm/msm_iommu.c
++++ b/drivers/gpu/drm/msm/msm_iommu.c
+@@ -7,6 +7,8 @@
+ #include <linux/adreno-smmu-priv.h>
+ #include <linux/io-pgtable.h>
+ #include <linux/kmemleak.h>
++#include <linux/of.h>
++#include <linux/of_iommu.h>
+ #include "msm_drv.h"
+ #include "msm_gpu_trace.h"
+ #include "msm_mmu.h"
+@@ -720,6 +722,40 @@
+ 		.set_stall = msm_iommu_set_stall,
+ };
+ 
++/* Keep the reserved boot scanout valid while replacing the display domain. */
++static int msm_iommu_map_boot_framebuffer(struct msm_iommu *iommu)
++{
++	struct device *dev = iommu->base.dev;
++	struct iommu_resv_region *region;
++	LIST_HEAD(regions);
++	int ret = 0;
++
++	if (!of_machine_is_compatible("samsung,gts6lwifi") ||
++	    !of_device_is_compatible(dev->of_node, "qcom,sm8150-mdss"))
++		return 0;
++
++	of_iommu_get_resv_regions(dev, &regions);
++	list_for_each_entry(region, &regions, list) {
++		if (region->type != IOMMU_RESV_DIRECT)
++			continue;
++		/* The board has one framebuffer reservation, not arbitrary RAM. */
++		if (iommu->base.firmware_size) {
++			ret = -EINVAL;
++			break;
++		}
++		ret = iommu_map(iommu->domain, region->start, region->start,
++				region->length, region->prot, GFP_KERNEL);
++		if (ret)
++			break;
++		iommu->base.firmware_iova = region->start;
++		iommu->base.firmware_size = region->length;
++		dev_info(dev, "mapped reserved boot framebuffer %pa/%zx\n",
++			 &region->start, region->length);
++	}
++	iommu_put_resv_regions(dev, &regions);
++	return ret;
++}
++
+ struct msm_mmu *msm_iommu_new(struct device *dev, unsigned long quirks)
+ {
+ 	struct iommu_domain *domain;
+@@ -753,6 +789,15 @@
+ 		return ERR_PTR(ret);
+ 	}
+ 
++	/* ARM SMMU creates page tables on attach; DSI clocks are still off. */
++	ret = msm_iommu_map_boot_framebuffer(iommu);
++	if (ret) {
++		iommu_detach_device(domain, dev);
++		iommu_domain_free(domain);
++		kfree(iommu);
++		return ERR_PTR(ret);
++	}
++
+ 	return &iommu->base;
+ }
+ 
+--- a/drivers/gpu/drm/msm/msm_mmu.h
++++ b/drivers/gpu/drm/msm/msm_mmu.h
+@@ -57,6 +57,10 @@
+ 	void *arg;
+ 	enum msm_mmu_type type;
+ 
++	/* Reserved identity mapping for the display boot framebuffer. */
++	u64 firmware_iova;
++	u64 firmware_size;
++
+ 	/**
+ 	 * @prealloc: pre-allocated pages for pgtable
+ 	 *
+@@ -72,6 +76,8 @@
+ 	mmu->dev = dev;
+ 	mmu->funcs = funcs;
+ 	mmu->type = type;
++	mmu->firmware_iova = 0;
++	mmu->firmware_size = 0;
+ }
+ 
+ struct msm_mmu *msm_iommu_new(struct device *dev, unsigned long quirks);
+--- a/drivers/gpu/drm/panel/Kconfig
++++ b/drivers/gpu/drm/panel/Kconfig
+@@ -1172,3 +1172,7 @@
+ 	  XPP055C272 controller for 720x1280 LCD panels with MIPI/RGB/SPI
+ 	  system interfaces.
+ endmenu
++
++config DRM_PANEL_SAMSUNG_ANA38401
++	tristate "Experimental Samsung ANA38401 AMSA05RB06 panel"
++	depends on OF && DRM_MIPI_DSI
+--- a/drivers/gpu/drm/panel/Makefile
++++ b/drivers/gpu/drm/panel/Makefile
+@@ -116,3 +116,5 @@
+ obj-$(CONFIG_DRM_PANEL_VISIONOX_R66451) += panel-visionox-r66451.o
+ obj-$(CONFIG_DRM_PANEL_WIDECHIPS_WS2401) += panel-widechips-ws2401.o
+ obj-$(CONFIG_DRM_PANEL_XINPENG_XPP055C272) += panel-xinpeng-xpp055c272.o
++
++obj-$(CONFIG_DRM_PANEL_SAMSUNG_ANA38401) += panel-samsung-ana38401.o
+--- a/drivers/gpu/drm/sysfb/simpledrm.c
++++ b/drivers/gpu/drm/sysfb/simpledrm.c
+@@ -801,8 +801,14 @@
+ 
+ 	/* Primary plane */
+ 
+-	nformats = drm_sysfb_build_fourcc_list(dev, &format->format, 1,
+-					       sdev->formats, ARRAY_SIZE(sdev->formats));
++	/* Preserve the firmware's alpha interpretation and avoid conversion. */
++	nformats = 0;
++	if (of_machine_is_compatible("samsung,gts6lwifi") &&
++	    format->format == DRM_FORMAT_ARGB8888)
++		sdev->formats[nformats++] = format->format;
++	nformats += drm_sysfb_build_fourcc_list(dev, &format->format, 1,
++					       sdev->formats + nformats,
++					       ARRAY_SIZE(sdev->formats) - nformats);
+ 
+ 	primary_plane = &sdev->primary_plane;
+ 	ret = drm_universal_plane_init(dev, primary_plane, 0, &simpledrm_primary_plane_funcs,
+@@ -881,6 +887,10 @@
+ 	struct drm_device *dev;
+ 	int ret;
+ 
++	ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64));
++	if (ret)
++		return ret;
++
+ 	sdev = simpledrm_device_create(&simpledrm_driver, pdev);
+ 	if (IS_ERR(sdev))
+ 		return PTR_ERR(sdev);
+--- a/drivers/input/touchscreen/Kconfig
++++ b/drivers/input/touchscreen/Kconfig
+@@ -1425,3 +1425,7 @@
+ 	  module will be called himax_hx83112b.
+ 
+ endif
++
++config TOUCHSCREEN_FTS1BA90A
++	tristate "Tab S6 fts1ba90a"
++	depends on I2C
+--- a/drivers/input/touchscreen/Makefile
++++ b/drivers/input/touchscreen/Makefile
+@@ -120,3 +120,5 @@
+ obj-$(CONFIG_TOUCHSCREEN_IQS7211)	+= iqs7211.o
+ obj-$(CONFIG_TOUCHSCREEN_ZINITIX)	+= zinitix.o
+ obj-$(CONFIG_TOUCHSCREEN_HIMAX_HX83112B)	+= himax_hx83112b.o
++
++obj-$(CONFIG_TOUCHSCREEN_FTS1BA90A) += fts1ba90a.o
+--- a/drivers/mfd/qcom-spmi-pmic.c
++++ b/drivers/mfd/qcom-spmi-pmic.c
+@@ -269,8 +269,30 @@
+ 	/* Only the first slave id for a PMIC contains this information */
+ 	if (sdev->usid % ctx->num_usids == 0) {
+ 		ret = pmic_spmi_load_revid(regmap, &sdev->dev, &ctx->pmic);
+-		if (ret < 0)
+-			return ret;
++		if (ret < 0) {
++			/*
++			 * On this board the SPMI arbiter denies the
++			 * applications EE the revision read on pm8150b, SID 2:
++			 * "0x2 0x104: transaction failed". Upstream treats that
++			 * as fatal, which aborts the probe and leaves every
++			 * child of that PMIC uninstantiated - including the ADC
++			 * block that carries the battery sense channel, so
++			 * nothing can report a battery at all.
++			 *
++			 * The revision is only used to describe the part, not
++			 * to reach it, so carry on without it and let each
++			 * child decide for itself. A child that genuinely
++			 * cannot reach its peripheral fails its own probe,
++			 * which is both harmless and far more informative than
++			 * silently having no children.
++			 */
++			dev_warn(&sdev->dev,
++				 "revid read failed (%d), continuing without it\n",
++				 ret);
++			ctx->pmic.type = PMIC_TYPE_VALUE;
++			ctx->pmic.subtype = 0;
++			ctx->pmic.name = "unknown";
++		}
+ 	} else {
+ 		ret = pmic_spmi_get_base_revid(sdev, ctx);
+ 		if (ret)
+--- a/drivers/misc/fastrpc.c
++++ b/drivers/misc/fastrpc.c
+@@ -277,6 +277,7 @@
+ 	struct list_head invoke_interrupted_mmaps;
+ 	bool secure;
+ 	bool unsigned_support;
++	bool reserved_mem_initialized;
+ 	u64 dma_mask;
+ };
+ 
+@@ -2317,6 +2318,54 @@
+ 	return -EINVAL;
+ }
+ 
++static DEFINE_MUTEX(gts6_sdsp_mem_lock);
++static struct resource gts6_sdsp_mem;
++static struct qcom_scm_vmperm gts6_sdsp_vmperms[FASTRPC_MAX_VMIDS];
++static int gts6_sdsp_vmcount;
++static bool gts6_sdsp_mem_shared;
++
++static int fastrpc_assign_sdsp_mem(struct device *dev, struct resource *res,
++				 struct fastrpc_channel_ctx *cctx)
++{
++	u64 src_perms = BIT(QCOM_SCM_VMID_HLOS);
++	int err;
++
++	if (!of_machine_is_compatible("samsung,gts6lwifi") ||
++	    IS_MODULE(CONFIG_QCOM_FASTRPC))
++		return qcom_scm_assign_mem(res->start, resource_size(res),
++					   &src_perms, cctx->vmperms, cctx->vmcount);
++
++	/* Samsung keeps this shared pool across SDSP restart for the boot. */
++	mutex_lock(&gts6_sdsp_mem_lock);
++	if (gts6_sdsp_mem_shared) {
++		if (res->start != gts6_sdsp_mem.start ||
++		    resource_size(res) != resource_size(&gts6_sdsp_mem) ||
++		    cctx->vmcount != gts6_sdsp_vmcount ||
++		    memcmp(cctx->vmperms, gts6_sdsp_vmperms,
++			   cctx->vmcount * sizeof(cctx->vmperms[0]))) {
++			err = -EINVAL;
++			dev_err(dev, "SDSP shared memory configuration changed\n");
++		} else {
++			err = 0;
++			dev_info(dev, "reusing verified SDSP shared memory assignment\n");
++		}
++		goto out;
++	}
++
++	err = qcom_scm_assign_mem(res->start, resource_size(res), &src_perms,
++				  cctx->vmperms, cctx->vmcount);
++	if (!err) {
++		gts6_sdsp_mem = *res;
++		gts6_sdsp_vmcount = cctx->vmcount;
++		memcpy(gts6_sdsp_vmperms, cctx->vmperms,
++		       cctx->vmcount * sizeof(cctx->vmperms[0]));
++		gts6_sdsp_mem_shared = true;
++	}
++out:
++	mutex_unlock(&gts6_sdsp_mem_lock);
++	return err;
++}
++
+ static int fastrpc_rpmsg_probe(struct rpmsg_device *rpdev)
+ {
+ 	struct device *rdev = &rpdev->dev;
+@@ -2339,9 +2388,6 @@
+ 		return -EINVAL;
+ 	}
+ 
+-	if (of_reserved_mem_device_init_by_idx(rdev, rdev->of_node, 0))
+-		dev_info(rdev, "no reserved DMA memory for FASTRPC\n");
+-
+ 	vmcount = of_property_read_variable_u32_array(rdev->of_node,
+ 				"qcom,vmids", &vmids[0], 0, FASTRPC_MAX_VMIDS);
+ 	if (vmcount < 0)
+@@ -2353,6 +2399,12 @@
+ 	if (!data)
+ 		return -ENOMEM;
+ 
++	err = of_reserved_mem_device_init_by_idx(rdev, rdev->of_node, 0);
++	if (err)
++		dev_info(rdev, "no reserved DMA memory for FASTRPC\n");
++	else
++		data->reserved_mem_initialized = true;
++
+ 	if (vmcount) {
+ 		data->vmcount = vmcount;
+ 		for (i = 0; i < data->vmcount; i++) {
+@@ -2363,14 +2415,10 @@
+ 
+ 	if (domain_id == SDSP_DOMAIN_ID) {
+ 		struct resource res;
+-		u64 src_perms;
+ 
+ 		err = of_reserved_mem_region_to_resource(rdev->of_node, 0, &res);
+ 		if (!err) {
+-			src_perms = BIT(QCOM_SCM_VMID_HLOS);
+-
+-			err = qcom_scm_assign_mem(res.start, resource_size(&res), &src_perms,
+-				    data->vmperms, data->vmcount);
++			err = fastrpc_assign_sdsp_mem(rdev, &res, data);
+ 			if (err)
+ 				goto err_free_data;
+ 		}
+@@ -2432,6 +2480,8 @@
+ 		misc_deregister(&data->secure_fdevice->miscdev);
+ 
+ err_free_data:
++	if (data->reserved_mem_initialized)
++		of_reserved_mem_device_release(rdev);
+ 	kfree(data);
+ 	return err;
+ }
+@@ -2475,6 +2525,8 @@
+ 		fastrpc_buf_free(cctx->remote_heap);
+ 
+ 	of_platform_depopulate(&rpdev->dev);
++	if (cctx->reserved_mem_initialized)
++		of_reserved_mem_device_release(&rpdev->dev);
+ 
+ 	fastrpc_channel_ctx_put(cctx);
+ }
+--- a/drivers/power/reset/msm-poweroff.c
++++ b/drivers/power/reset/msm-poweroff.c
+@@ -15,25 +15,131 @@
+ 
+ static void __iomem *msm_ps_hold;
+ 
+-static int do_msm_poweroff(struct sys_off_data *data)
++/*
++ * Diagnostic. device_shutdown() tears down simpledrm, so by the time a sys-off
++ * handler runs the console is frozen on its last frame and nothing it prints is
++ * ever visible - not even the kernel's own "reboot: Power down". Setting this
++ * releases PS_HOLD from the reboot notifier instead, which runs BEFORE
++ * device_shutdown(), so if releasing PS_HOLD cuts power the machine dies right
++ * there, and if it does not we get to see that said so on screen.
++ *
++ * Safe at that point in the sequence: systemd has already unmounted, remounted
++ * read-only and synced before it calls reboot().
++ *
++ *   echo 1 > /sys/module/msm_poweroff/parameters/early_release
++ */
++static bool early_release = true;
++module_param(early_release, bool, 0644);
++MODULE_PARM_DESC(early_release,
++		 "Release PS_HOLD from the reboot notifier, before the console dies");
++
++static int msm_reboot_notify(struct notifier_block *nb, unsigned long action,
++			     void *data)
+ {
++	const char *what;
++
++	switch (action) {
++	case SYS_POWER_OFF:
++		what = "power off";
++		break;
++	case SYS_RESTART:
++		what = "restart";
++		break;
++	case SYS_HALT:
++		what = "halt";
++		break;
++	default:
++		return NOTIFY_DONE;
++	}
++
++	pr_emerg("msm-poweroff: %s requested, early_release=%d\n",
++		 what, early_release);
++
++	if (!early_release)
++		return NOTIFY_DONE;
++
++	/*
++	 * Both paths go out through PS_HOLD, and both do it HERE rather than
++	 * from a sys-off handler, because everything after this point on this
++	 * board is unreliable: device_shutdown() runs next and takes simpledrm
++	 * with it, so nothing printed later is ever visible, and something in
++	 * that stretch intermittently hangs - a reboot would sit forever on
++	 * "Rebooting." having already got this far, and a power off never cut
++	 * power at all.
++	 *
++	 * qcom-pon has already selected what the release MEANS, from its own
++	 * notifier at a higher priority: shutdown for a power off (with SMPL
++	 * disarmed so the PMIC does not immediately power back up), warm reset
++	 * for a restart.
++	 *
++	 * Safe here: systemd has already unmounted, remounted read-only and
++	 * synced before it called reboot(). Devices do not get their shutdown
++	 * callbacks, which is the price of not hanging.
++	 */
++	pr_emerg("msm-poweroff: releasing PS_HOLD now\n");
+ 	writel(0, msm_ps_hold);
+-	mdelay(10000);
++	mdelay(5000);
++	pr_emerg("msm-poweroff: PS_HOLD released and nothing happened\n");
+ 
+ 	return NOTIFY_DONE;
+ }
+ 
++static int do_msm_poweroff(struct sys_off_data *data)
++{
++	/*
++	 * pr_emerg because by this point the journal is gone and the console is
++	 * the only place left to report anything. These two lines are how we
++	 * tell, from a photograph of the screen, whether PS_HOLD was reached at
++	 * all and whether releasing it did anything.
++	 */
++	pr_emerg("msm-poweroff: releasing PS_HOLD (sys-off mode %d)\n",
++		 data ? data->mode : -1);
++
++	writel(0, msm_ps_hold);
++	mdelay(10000);
++
++	pr_emerg("msm-poweroff: PS_HOLD released but power was not cut\n");
++
++	return NOTIFY_DONE;
++}
++
++static struct notifier_block msm_reboot_nb = {
++	.notifier_call = msm_reboot_notify,
++	.priority = 0,	/* after qcom-pon has selected the PS_HOLD type */
++};
++
+ static int msm_restart_probe(struct platform_device *pdev)
+ {
++	int ret;
++
+ 	msm_ps_hold = devm_platform_ioremap_resource(pdev, 0);
+ 	if (IS_ERR(msm_ps_hold))
+ 		return PTR_ERR(msm_ps_hold);
+ 
++	ret = devm_register_reboot_notifier(&pdev->dev, &msm_reboot_nb);
++	if (ret)
++		return ret;
++
+ 	devm_register_sys_off_handler(&pdev->dev, SYS_OFF_MODE_RESTART,
+ 				      128, do_msm_poweroff, NULL);
+ 
++	/*
++	 * Registered at HIGH rather than DEFAULT so that releasing PS_HOLD runs
++	 * BEFORE PSCI gets a chance.
++	 *
++	 * PSCI installs its power-off through the legacy pm_power_off pointer,
++	 * which kernel/reboot.c wraps in a handler at SYS_OFF_PRIO_DEFAULT - the
++	 * same priority this used to use. On this board PSCI SYSTEM_OFF goes
++	 * into Samsung secure firmware and never returns, so whenever it won the
++	 * tie the machine printed "Powering off." and then hung with the console
++	 * frozen, and PS_HOLD was never released at all.
++	 *
++	 * Dropping PS_HOLD is the mechanism that actually cuts power on this
++	 * SoC, so it should be tried first and the firmware call left as the
++	 * fallback it deserves to be.
++	 */
+ 	devm_register_sys_off_handler(&pdev->dev, SYS_OFF_MODE_POWER_OFF,
+-				      SYS_OFF_PRIO_DEFAULT, do_msm_poweroff,
++				      SYS_OFF_PRIO_HIGH, do_msm_poweroff,
+ 				      NULL);
+ 
+ 	return 0;
+--- a/drivers/power/reset/qcom-pon.c
++++ b/drivers/power/reset/qcom-pon.c
+@@ -14,6 +14,32 @@
+ 
+ #define PON_SOFT_RB_SPARE		0x8f
+ 
++/*
++ * PS_HOLD reset control: what the PMIC does when PS_HOLD is released.
++ * Releasing PS_HOLD is what actually cuts power, but the PMIC decides what that
++ * MEANS from these registers, and the bootloader leaves the type set to warm
++ * reset - so asking for a power off rebooted the device instead.
++ */
++#define PON_PS_HOLD_RST_CTL		0x5a
++#define PON_PS_HOLD_RST_CTL2		0x5b
++#define PON_PS_HOLD_ENABLE		BIT(7)
++#define PON_PS_HOLD_TYPE_MASK		GENMASK(3, 0)
++#define PON_PS_HOLD_TYPE_WARM_RESET	0x01
++#define PON_PS_HOLD_TYPE_SHUTDOWN	0x04
++
++/*
++ * SMPL - Sudden Momentary Power Loss - makes the PMIC power the machine back up
++ * by itself after a brief loss of supply. The bootloader leaves it armed, and
++ * releasing PS_HOLD looks exactly like the event it is watching for, so the
++ * tablet powered off and then immediately came back.
++ *
++ * Offsets confirmed against the live PMIC rather than assumed: 0x70 reads back
++ * as pull-up control and 0x71 as debounce, matching the Qualcomm PON layout,
++ * and 0x7f reads 0x80 - SMPL_EN set.
++ */
++#define PON_SMPL_CTL			0x7f
++#define PON_SMPL_EN			BIT(7)
++
+ #define GEN1_REASON_SHIFT		2
+ #define GEN2_REASON_SHIFT		1
+ 
+@@ -24,6 +50,7 @@
+ 	struct regmap *regmap;
+ 	u32 baseaddr;
+ 	struct reboot_mode_driver reboot_mode;
++	struct notifier_block reboot_nb;
+ 	long reason_shift;
+ };
+ 
+@@ -42,6 +69,124 @@
+ 		dev_err(pon->dev, "update reboot mode bits failed\n");
+ 
+ 	return ret;
++}
++
++/*
++ * Tell the PMIC that the next PS_HOLD release means "shut down", not "reset".
++ *
++ * The bootloader on this board leaves PS_HOLD_RST_CTL set to warm reset (0x01),
++ * and nothing in mainline ever changes it - qcom-pon only writes the reboot
++ * REASON, never the reset TYPE. So a power-off request reached
++ * drivers/power/reset/msm-poweroff.c, PS_HOLD was released as intended, and the
++ * PMIC dutifully warm-reset the machine. From userspace that looked like a
++ * shutdown that rebooted instead of powering off.
++ *
++ * Run as a POWER_OFF_PREPARE handler so it happens before whichever handler
++ * actually drops PS_HOLD, and only on power off - reboot is left alone, since
++ * it already works through PSCI and should keep the reset type it has.
++ *
++ * The enable bit is cleared around the change, as the vendor driver does, so
++ * the PMIC never latches a half-written type.
++ */
++static int qcom_pon_set_ps_hold_type(struct qcom_pon *pon, unsigned int type)
++{
++	unsigned int val = 0;
++	int ret;
++
++	ret = regmap_update_bits(pon->regmap,
++				 pon->baseaddr + PON_PS_HOLD_RST_CTL2,
++				 PON_PS_HOLD_ENABLE, 0);
++	if (ret)
++		goto err;
++
++	/* The PMIC needs a moment before it will accept the new type. */
++	udelay(100);
++
++	ret = regmap_update_bits(pon->regmap,
++				 pon->baseaddr + PON_PS_HOLD_RST_CTL,
++				 PON_PS_HOLD_TYPE_MASK, type);
++	if (ret)
++		goto err;
++
++	ret = regmap_update_bits(pon->regmap,
++				 pon->baseaddr + PON_PS_HOLD_RST_CTL2,
++				 PON_PS_HOLD_ENABLE, PON_PS_HOLD_ENABLE);
++	if (ret)
++		goto err;
++
++	/*
++	 * Read back and shout about it on the console. By the time a sys-off
++	 * handler runs the journal is already gone, so this line on screen is
++	 * the only evidence of whether the PMIC actually took the setting.
++	 */
++	regmap_read(pon->regmap, pon->baseaddr + PON_PS_HOLD_RST_CTL, &val);
++	pr_emerg("qcom-pon: PS_HOLD type wanted 0x%02x, reads back 0x%02x\n",
++		 type, (unsigned int)(val & PON_PS_HOLD_TYPE_MASK));
++
++	return 0;
++
++err:
++	/*
++	 * Not fatal: report it and let the shutdown continue, which leaves the
++	 * behaviour exactly as it was before this handler existed.
++	 */
++	pr_emerg("qcom-pon: failed to set PS_HOLD type 0x%02x: %d\n", type, ret);
++	return ret;
++}
++
++/*
++ * Done from a reboot notifier rather than a sys-off handler, deliberately.
++ *
++ * Reboot notifiers run at the very top of kernel_shutdown_prepare(), BEFORE
++ * device_shutdown(). sys-off handlers run after it. That matters twice over on
++ * this device: device_shutdown() tears down simpledrm, so the console freezes
++ * on its last frame and nothing printed afterwards is ever visible - which is
++ * why "Powering off." is the last line on screen and even the kernel's own
++ * "reboot: Power down" never appears - and it also shuts down the SPMI
++ * controller this write has to go through.
++ *
++ * Running here means the PMIC is definitely still reachable and the readback
++ * below is actually readable on screen.
++ *
++ * Restart re-asserts warm reset on purpose: the type is a sticky PMIC setting,
++ * so once a power-off has selected shutdown it stays selected, and a later
++ * reboot that released PS_HOLD would silently power the machine off instead of
++ * restarting it. Setting it explicitly on each path makes the outcome depend on
++ * what was asked for, not on what happened last time.
++ */
++static int qcom_pon_reboot_notify(struct notifier_block *nb,
++				    unsigned long action, void *data)
++{
++	struct qcom_pon *pon = container_of(nb, struct qcom_pon, reboot_nb);
++
++	switch (action) {
++	case SYS_POWER_OFF: {
++		unsigned int smpl = 0;
++		int ret;
++
++		qcom_pon_set_ps_hold_type(pon, PON_PS_HOLD_TYPE_SHUTDOWN);
++
++		/*
++		 * Disarm SMPL, or the PMIC treats the PS_HOLD release as a
++		 * momentary supply glitch and powers the machine straight back
++		 * up. Only done for power off - a restart WANTS to come back.
++		 */
++		ret = regmap_update_bits(pon->regmap,
++					 pon->baseaddr + PON_SMPL_CTL,
++					 PON_SMPL_EN, 0);
++		regmap_read(pon->regmap, pon->baseaddr + PON_SMPL_CTL, &smpl);
++		pr_emerg("qcom-pon: SMPL disable ret %d, SMPL_CTL now 0x%02x (want bit7 clear)\n",
++			 ret, smpl);
++		break;
++	}
++	case SYS_RESTART:
++	case SYS_HALT:
++	default:
++		qcom_pon_set_ps_hold_type(pon, PON_PS_HOLD_TYPE_WARM_RESET);
++		break;
++	}
++
++	return NOTIFY_DONE;
+ }
+ 
+ static int qcom_pon_probe(struct platform_device *pdev)
+@@ -80,6 +225,15 @@
+ 		}
+ 	}
+ 
++	/* Priority 1 so this runs before msm-poweroff's notifier, which may be
++	 * asked to release PS_HOLD and needs the type already selected. */
++	pon->reboot_nb.notifier_call = qcom_pon_reboot_notify;
++	pon->reboot_nb.priority = 1;
++	error = devm_register_reboot_notifier(&pdev->dev, &pon->reboot_nb);
++	if (error)
++		return dev_err_probe(&pdev->dev, error,
++				     "can't register reboot notifier\n");
++
+ 	platform_set_drvdata(pdev, pon);
+ 
+ 	return devm_of_platform_populate(&pdev->dev);
+--- a/drivers/power/supply/Kconfig
++++ b/drivers/power/supply/Kconfig
+@@ -1098,3 +1098,7 @@
+ 	  capacity, etc.
+ 
+ endif # POWER_SUPPLY
++
++config BATTERY_SM5705
++	tristate "Tab S6 sm5705_fuelgauge"
++	depends on I2C
+--- a/drivers/power/supply/Makefile
++++ b/drivers/power/supply/Makefile
+@@ -125,3 +125,5 @@
+ obj-$(CONFIG_BATTERY_UG3105)	+= ug3105_battery.o
+ obj-$(CONFIG_CHARGER_QCOM_SMB2)	+= qcom_smbx.o
+ obj-$(CONFIG_FUEL_GAUGE_MM8013)	+= mm8013.o
++
++obj-$(CONFIG_BATTERY_SM5705) += sm5705_fuelgauge.o
+--- a/drivers/usb/dwc3/drd.c
++++ b/drivers/usb/dwc3/drd.c
+@@ -515,6 +515,22 @@
+ 	dwc3_role_switch.set = dwc3_usb_role_switch_set;
+ 	dwc3_role_switch.get = dwc3_usb_role_switch_get;
+ 	dwc3_role_switch.driver_data = dwc;
++
++	/*
++	 * Let userspace drive the role from
++	 * /sys/class/usb_role/<dev>/role. usb_role_switch_is_visible() hides
++	 * that attribute entirely unless this is set, which is why the switch
++	 * appeared under /sys/class/usb_role with no way to operate it.
++	 *
++	 * This tablet has no built-in keyboard and nothing on the board tells
++	 * the kernel which way round the port should be - there is no Type-C
++	 * controller driver and no ID pin wired to anything mainline knows
++	 * about, so the decision can only come from the user. Defaulting stays
++	 * peripheral, which keeps the RNDIS gadget available as the fallback
++	 * way in; flipping to host is a deliberate act.
++	 */
++	dwc3_role_switch.allow_userspace_control = true;
++
+ 	dwc->role_sw = usb_role_switch_register(dwc->dev, &dwc3_role_switch);
+ 	if (IS_ERR(dwc->role_sw))
+ 		return PTR_ERR(dwc->role_sw);
+--- a/include/uapi/linux/netfilter/xt_CONNMARK.h
++++ b/include/uapi/linux/netfilter/xt_CONNMARK.h
+@@ -1,7 +1,37 @@
+-/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+-#ifndef _XT_CONNMARK_H_target
+-#define _XT_CONNMARK_H_target
++/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
++/* Copyright (C) 2002,2004 MARA Systems AB <https://www.marasystems.com>
++ * by Henrik Nordstrom <hno@marasystems.com>
++ */
+ 
+-#include <linux/netfilter/xt_connmark.h>
++#ifndef _XT_CONNMARK_H
++#define _XT_CONNMARK_H
+ 
+-#endif /*_XT_CONNMARK_H_target*/
++#include <linux/types.h>
++
++enum {
++	XT_CONNMARK_SET = 0,
++	XT_CONNMARK_SAVE,
++	XT_CONNMARK_RESTORE
++};
++
++enum {
++	D_SHIFT_LEFT = 0,
++	D_SHIFT_RIGHT,
++};
++
++struct xt_connmark_tginfo1 {
++	__u32 ctmark, ctmask, nfmask;
++	__u8 mode;
++};
++
++struct xt_connmark_tginfo2 {
++	__u32 ctmark, ctmask, nfmask;
++	__u8 shift_dir, shift_bits, mode;
++};
++
++struct xt_connmark_mtinfo1 {
++	__u32 mark, mask;
++	__u8 invert;
++};
++
++#endif /*_XT_CONNMARK_H*/
+--- a/include/uapi/linux/netfilter/xt_DSCP.h
++++ b/include/uapi/linux/netfilter/xt_DSCP.h
+@@ -1,27 +1,32 @@
+ /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+-/* x_tables module for setting the IPv4/IPv6 DSCP field
++/* x_tables module for matching the IPv4/IPv6 DSCP field
+  *
+  * (C) 2002 Harald Welte <laforge@gnumonks.org>
+- * based on ipt_FTOS.c (C) 2000 by Matthew G. Marsh <mgm@paktronix.com>
+  * This software is distributed under GNU GPL v2, 1991
+  *
+  * See RFC2474 for a description of the DSCP field within the IP Header.
+  *
+- * xt_DSCP.h,v 1.7 2002/03/14 12:03:13 laforge Exp
++ * xt_dscp.h,v 1.3 2002/08/05 19:00:21 laforge Exp
+ */
+-#ifndef _XT_DSCP_TARGET_H
+-#define _XT_DSCP_TARGET_H
+-#include <linux/netfilter/xt_dscp.h>
++#ifndef _XT_DSCP_H
++#define _XT_DSCP_H
++
+ #include <linux/types.h>
+ 
+-/* target info */
+-struct xt_DSCP_info {
++#define XT_DSCP_MASK	0xfc	/* 11111100 */
++#define XT_DSCP_SHIFT	2
++#define XT_DSCP_MAX	0x3f	/* 00111111 */
++
++/* match info */
++struct xt_dscp_info {
+ 	__u8 dscp;
++	__u8 invert;
+ };
+ 
+-struct xt_tos_target_info {
++struct xt_tos_match_info {
++	__u8 tos_mask;
+ 	__u8 tos_value;
+-	__u8 tos_mask;
++	__u8 invert;
+ };
+ 
+-#endif /* _XT_DSCP_TARGET_H */
++#endif /* _XT_DSCP_H */
+--- a/include/uapi/linux/netfilter/xt_MARK.h
++++ b/include/uapi/linux/netfilter/xt_MARK.h
+@@ -1,7 +1,16 @@
+ /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+-#ifndef _XT_MARK_H_target
+-#define _XT_MARK_H_target
++#ifndef _XT_MARK_H
++#define _XT_MARK_H
+ 
+-#include <linux/netfilter/xt_mark.h>
++#include <linux/types.h>
+ 
+-#endif /*_XT_MARK_H_target */
++struct xt_mark_tginfo2 {
++	__u32 mark, mask;
++};
++
++struct xt_mark_mtinfo1 {
++	__u32 mark, mask;
++	__u8 invert;
++};
++
++#endif /*_XT_MARK_H*/
+--- a/include/uapi/linux/netfilter/xt_RATEEST.h
++++ b/include/uapi/linux/netfilter/xt_RATEEST.h
+@@ -1,17 +1,39 @@
+ /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+-#ifndef _XT_RATEEST_TARGET_H
+-#define _XT_RATEEST_TARGET_H
++#ifndef _XT_RATEEST_MATCH_H
++#define _XT_RATEEST_MATCH_H
+ 
+ #include <linux/types.h>
+ #include <linux/if.h>
+ 
+-struct xt_rateest_target_info {
+-	char			name[IFNAMSIZ];
+-	__s8			interval;
+-	__u8		ewma_log;
++enum xt_rateest_match_flags {
++	XT_RATEEST_MATCH_INVERT	= 1<<0,
++	XT_RATEEST_MATCH_ABS	= 1<<1,
++	XT_RATEEST_MATCH_REL	= 1<<2,
++	XT_RATEEST_MATCH_DELTA	= 1<<3,
++	XT_RATEEST_MATCH_BPS	= 1<<4,
++	XT_RATEEST_MATCH_PPS	= 1<<5,
++};
++
++enum xt_rateest_match_mode {
++	XT_RATEEST_MATCH_NONE,
++	XT_RATEEST_MATCH_EQ,
++	XT_RATEEST_MATCH_LT,
++	XT_RATEEST_MATCH_GT,
++};
++
++struct xt_rateest_match_info {
++	char			name1[IFNAMSIZ];
++	char			name2[IFNAMSIZ];
++	__u16		flags;
++	__u16		mode;
++	__u32		bps1;
++	__u32		pps1;
++	__u32		bps2;
++	__u32		pps2;
+ 
+ 	/* Used internally by the kernel */
+-	struct xt_rateest	*est __attribute__((aligned(8)));
++	struct xt_rateest	*est1 __attribute__((aligned(8)));
++	struct xt_rateest	*est2 __attribute__((aligned(8)));
+ };
+ 
+-#endif /* _XT_RATEEST_TARGET_H */
++#endif /* _XT_RATEEST_MATCH_H */
+--- a/include/uapi/linux/netfilter/xt_TCPMSS.h
++++ b/include/uapi/linux/netfilter/xt_TCPMSS.h
+@@ -1,13 +1,12 @@
+ /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+-#ifndef _XT_TCPMSS_H
+-#define _XT_TCPMSS_H
++#ifndef _XT_TCPMSS_MATCH_H
++#define _XT_TCPMSS_MATCH_H
+ 
+ #include <linux/types.h>
+ 
+-struct xt_tcpmss_info {
+-	__u16 mss;
++struct xt_tcpmss_match_info {
++    __u16 mss_min, mss_max;
++    __u8 invert;
+ };
+ 
+-#define XT_TCPMSS_CLAMP_PMTU 0xffff
+-
+-#endif /* _XT_TCPMSS_H */
++#endif /*_XT_TCPMSS_MATCH_H*/
+--- a/include/uapi/linux/netfilter_ipv4/ipt_ECN.h
++++ b/include/uapi/linux/netfilter_ipv4/ipt_ECN.h
+@@ -1,34 +1,16 @@
+ /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+-/* Header file for iptables ipt_ECN target
+- *
+- * (C) 2002 by Harald Welte <laforge@gnumonks.org>
+- *
+- * This software is distributed under GNU GPL v2, 1991
+- * 
+- * ipt_ECN.h,v 1.3 2002/05/29 12:17:40 laforge Exp
+-*/
+-#ifndef _IPT_ECN_TARGET_H
+-#define _IPT_ECN_TARGET_H
++#ifndef _IPT_ECN_H
++#define _IPT_ECN_H
+ 
+-#include <linux/types.h>
+-#include <linux/netfilter/xt_DSCP.h>
++#include <linux/netfilter/xt_ecn.h>
++#define ipt_ecn_info xt_ecn_info
+ 
+-#define IPT_ECN_IP_MASK	(~XT_DSCP_MASK)
+-
+-#define IPT_ECN_OP_SET_IP	0x01	/* set ECN bits of IPv4 header */
+-#define IPT_ECN_OP_SET_ECE	0x10	/* set ECE bit of TCP header */
+-#define IPT_ECN_OP_SET_CWR	0x20	/* set CWR bit of TCP header */
+-
+-#define IPT_ECN_OP_MASK		0xce
+-
+-struct ipt_ECN_info {
+-	__u8 operation;	/* bitset of operations */
+-	__u8 ip_ect;	/* ECT codepoint of IPv4 header, pre-shifted */
+-	union {
+-		struct {
+-			__u8 ece:1, cwr:1; /* TCP ECT bits */
+-		} tcp;
+-	} proto;
++enum {
++	IPT_ECN_IP_MASK       = XT_ECN_IP_MASK,
++	IPT_ECN_OP_MATCH_IP   = XT_ECN_OP_MATCH_IP,
++	IPT_ECN_OP_MATCH_ECE  = XT_ECN_OP_MATCH_ECE,
++	IPT_ECN_OP_MATCH_CWR  = XT_ECN_OP_MATCH_CWR,
++	IPT_ECN_OP_MATCH_MASK = XT_ECN_OP_MATCH_MASK,
+ };
+ 
+-#endif /* _IPT_ECN_TARGET_H */
++#endif /* IPT_ECN_H */
+--- a/include/uapi/linux/netfilter_ipv4/ipt_TTL.h
++++ b/include/uapi/linux/netfilter_ipv4/ipt_TTL.h
+@@ -1,6 +1,6 @@
+ /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+-/* TTL modification module for IP tables
+- * (C) 2000 by Harald Welte <laforge@netfilter.org> */
++/* IP tables module for matching the value of the TTL
++ * (C) 2000 by Harald Welte <laforge@gnumonks.org> */
+ 
+ #ifndef _IPT_TTL_H
+ #define _IPT_TTL_H
+@@ -8,14 +8,14 @@
+ #include <linux/types.h>
+ 
+ enum {
+-	IPT_TTL_SET = 0,
+-	IPT_TTL_INC,
+-	IPT_TTL_DEC
++	IPT_TTL_EQ = 0,		/* equals */
++	IPT_TTL_NE,		/* not equals */
++	IPT_TTL_LT,		/* less than */
++	IPT_TTL_GT,		/* greater than */
+ };
+ 
+-#define IPT_TTL_MAXMODE	IPT_TTL_DEC
+ 
+-struct ipt_TTL_info {
++struct ipt_ttl_info {
+ 	__u8	mode;
+ 	__u8	ttl;
+ };
+--- a/include/uapi/linux/netfilter_ipv6/ip6t_HL.h
++++ b/include/uapi/linux/netfilter_ipv6/ip6t_HL.h
+@@ -1,7 +1,7 @@
+ /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+-/* Hop Limit modification module for ip6tables
++/* ip6tables module for matching the Hop Limit value
+  * Maciej Soltysiak <solt@dns.toxicfilms.tv>
+- * Based on HW's TTL module */
++ * Based on HW's ttl module */
+ 
+ #ifndef _IP6T_HL_H
+ #define _IP6T_HL_H
+@@ -9,14 +9,14 @@
+ #include <linux/types.h>
+ 
+ enum {
+-	IP6T_HL_SET = 0,
+-	IP6T_HL_INC,
+-	IP6T_HL_DEC
++	IP6T_HL_EQ = 0,		/* equals */
++	IP6T_HL_NE,		/* not equals */
++	IP6T_HL_LT,		/* less than */
++	IP6T_HL_GT,		/* greater than */
+ };
+ 
+-#define IP6T_HL_MAXMODE	IP6T_HL_DEC
+ 
+-struct ip6t_HL_info {
++struct ip6t_hl_info {
+ 	__u8	mode;
+ 	__u8	hop_limit;
+ };
+--- a/net/netfilter/xt_DSCP.c
++++ b/net/netfilter/xt_DSCP.c
+@@ -1,11 +1,8 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+-/* x_tables module for setting the IPv4/IPv6 DSCP field, Version 1.8
++/* IP tables module for matching the value of the IPv4/IPv6 DSCP field
+  *
+  * (C) 2002 by Harald Welte <laforge@netfilter.org>
+- * based on ipt_FTOS.c (C) 2000 by Matthew G. Marsh <mgm@paktronix.com>
+- *
+- * See RFC2474 for a description of the DSCP field within the IP Header.
+-*/
++ */
+ #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+ #include <linux/module.h>
+ #include <linux/skbuff.h>
+@@ -14,148 +11,100 @@
+ #include <net/dsfield.h>
+ 
+ #include <linux/netfilter/x_tables.h>
+-#include <linux/netfilter/xt_DSCP.h>
++#include <linux/netfilter/xt_dscp.h>
+ 
+ MODULE_AUTHOR("Harald Welte <laforge@netfilter.org>");
+-MODULE_DESCRIPTION("Xtables: DSCP/TOS field modification");
++MODULE_DESCRIPTION("Xtables: DSCP/TOS field match");
+ MODULE_LICENSE("GPL");
+-MODULE_ALIAS("ipt_DSCP");
+-MODULE_ALIAS("ip6t_DSCP");
+-MODULE_ALIAS("ipt_TOS");
+-MODULE_ALIAS("ip6t_TOS");
++MODULE_ALIAS("ipt_dscp");
++MODULE_ALIAS("ip6t_dscp");
++MODULE_ALIAS("ipt_tos");
++MODULE_ALIAS("ip6t_tos");
+ 
+-#define XT_DSCP_ECN_MASK	3u
+-
+-static unsigned int
+-dscp_tg(struct sk_buff *skb, const struct xt_action_param *par)
++static bool
++dscp_mt(const struct sk_buff *skb, struct xt_action_param *par)
+ {
+-	const struct xt_DSCP_info *dinfo = par->targinfo;
++	const struct xt_dscp_info *info = par->matchinfo;
+ 	u_int8_t dscp = ipv4_get_dsfield(ip_hdr(skb)) >> XT_DSCP_SHIFT;
+ 
+-	if (dscp != dinfo->dscp) {
+-		if (skb_ensure_writable(skb, sizeof(struct iphdr)))
+-			return NF_DROP;
+-
+-		ipv4_change_dsfield(ip_hdr(skb), XT_DSCP_ECN_MASK,
+-				    dinfo->dscp << XT_DSCP_SHIFT);
+-
+-	}
+-	return XT_CONTINUE;
++	return (dscp == info->dscp) ^ !!info->invert;
+ }
+ 
+-static unsigned int
+-dscp_tg6(struct sk_buff *skb, const struct xt_action_param *par)
++static bool
++dscp_mt6(const struct sk_buff *skb, struct xt_action_param *par)
+ {
+-	const struct xt_DSCP_info *dinfo = par->targinfo;
++	const struct xt_dscp_info *info = par->matchinfo;
+ 	u_int8_t dscp = ipv6_get_dsfield(ipv6_hdr(skb)) >> XT_DSCP_SHIFT;
+ 
+-	if (dscp != dinfo->dscp) {
+-		if (skb_ensure_writable(skb, sizeof(struct ipv6hdr)))
+-			return NF_DROP;
+-
+-		ipv6_change_dsfield(ipv6_hdr(skb), XT_DSCP_ECN_MASK,
+-				    dinfo->dscp << XT_DSCP_SHIFT);
+-	}
+-	return XT_CONTINUE;
++	return (dscp == info->dscp) ^ !!info->invert;
+ }
+ 
+-static int dscp_tg_check(const struct xt_tgchk_param *par)
++static int dscp_mt_check(const struct xt_mtchk_param *par)
+ {
+-	const struct xt_DSCP_info *info = par->targinfo;
++	const struct xt_dscp_info *info = par->matchinfo;
+ 
+ 	if (info->dscp > XT_DSCP_MAX)
+ 		return -EDOM;
++
+ 	return 0;
+ }
+ 
+-static unsigned int
+-tos_tg(struct sk_buff *skb, const struct xt_action_param *par)
++static bool tos_mt(const struct sk_buff *skb, struct xt_action_param *par)
+ {
+-	const struct xt_tos_target_info *info = par->targinfo;
+-	struct iphdr *iph = ip_hdr(skb);
+-	u_int8_t orig, nv;
++	const struct xt_tos_match_info *info = par->matchinfo;
+ 
+-	orig = ipv4_get_dsfield(iph);
+-	nv   = (orig & ~info->tos_mask) ^ info->tos_value;
+-
+-	if (orig != nv) {
+-		if (skb_ensure_writable(skb, sizeof(struct iphdr)))
+-			return NF_DROP;
+-		iph = ip_hdr(skb);
+-		ipv4_change_dsfield(iph, 0, nv);
+-	}
+-
+-	return XT_CONTINUE;
++	if (xt_family(par) == NFPROTO_IPV4)
++		return ((ip_hdr(skb)->tos & info->tos_mask) ==
++		       info->tos_value) ^ !!info->invert;
++	else
++		return ((ipv6_get_dsfield(ipv6_hdr(skb)) & info->tos_mask) ==
++		       info->tos_value) ^ !!info->invert;
+ }
+ 
+-static unsigned int
+-tos_tg6(struct sk_buff *skb, const struct xt_action_param *par)
+-{
+-	const struct xt_tos_target_info *info = par->targinfo;
+-	struct ipv6hdr *iph = ipv6_hdr(skb);
+-	u_int8_t orig, nv;
+-
+-	orig = ipv6_get_dsfield(iph);
+-	nv   = (orig & ~info->tos_mask) ^ info->tos_value;
+-
+-	if (orig != nv) {
+-		if (skb_ensure_writable(skb, sizeof(struct iphdr)))
+-			return NF_DROP;
+-		iph = ipv6_hdr(skb);
+-		ipv6_change_dsfield(iph, 0, nv);
+-	}
+-
+-	return XT_CONTINUE;
+-}
+-
+-static struct xt_target dscp_tg_reg[] __read_mostly = {
++static struct xt_match dscp_mt_reg[] __read_mostly = {
+ 	{
+-		.name		= "DSCP",
++		.name		= "dscp",
+ 		.family		= NFPROTO_IPV4,
+-		.checkentry	= dscp_tg_check,
+-		.target		= dscp_tg,
+-		.targetsize	= sizeof(struct xt_DSCP_info),
+-		.table		= "mangle",
++		.checkentry	= dscp_mt_check,
++		.match		= dscp_mt,
++		.matchsize	= sizeof(struct xt_dscp_info),
+ 		.me		= THIS_MODULE,
+ 	},
+ 	{
+-		.name		= "DSCP",
++		.name		= "dscp",
+ 		.family		= NFPROTO_IPV6,
+-		.checkentry	= dscp_tg_check,
+-		.target		= dscp_tg6,
+-		.targetsize	= sizeof(struct xt_DSCP_info),
+-		.table		= "mangle",
++		.checkentry	= dscp_mt_check,
++		.match		= dscp_mt6,
++		.matchsize	= sizeof(struct xt_dscp_info),
+ 		.me		= THIS_MODULE,
+ 	},
+ 	{
+-		.name		= "TOS",
++		.name		= "tos",
+ 		.revision	= 1,
+ 		.family		= NFPROTO_IPV4,
+-		.table		= "mangle",
+-		.target		= tos_tg,
+-		.targetsize	= sizeof(struct xt_tos_target_info),
++		.match		= tos_mt,
++		.matchsize	= sizeof(struct xt_tos_match_info),
+ 		.me		= THIS_MODULE,
+ 	},
+ 	{
+-		.name		= "TOS",
++		.name		= "tos",
+ 		.revision	= 1,
+ 		.family		= NFPROTO_IPV6,
+-		.table		= "mangle",
+-		.target		= tos_tg6,
+-		.targetsize	= sizeof(struct xt_tos_target_info),
++		.match		= tos_mt,
++		.matchsize	= sizeof(struct xt_tos_match_info),
+ 		.me		= THIS_MODULE,
+ 	},
+ };
+ 
+-static int __init dscp_tg_init(void)
++static int __init dscp_mt_init(void)
+ {
+-	return xt_register_targets(dscp_tg_reg, ARRAY_SIZE(dscp_tg_reg));
++	return xt_register_matches(dscp_mt_reg, ARRAY_SIZE(dscp_mt_reg));
+ }
+ 
+-static void __exit dscp_tg_exit(void)
++static void __exit dscp_mt_exit(void)
+ {
+-	xt_unregister_targets(dscp_tg_reg, ARRAY_SIZE(dscp_tg_reg));
++	xt_unregister_matches(dscp_mt_reg, ARRAY_SIZE(dscp_mt_reg));
+ }
+ 
+-module_init(dscp_tg_init);
+-module_exit(dscp_tg_exit);
++module_init(dscp_mt_init);
++module_exit(dscp_mt_exit);
+--- a/net/netfilter/xt_HL.c
++++ b/net/netfilter/xt_HL.c
+@@ -1,159 +1,120 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /*
+- * TTL modification target for IP tables
+- * (C) 2000,2005 by Harald Welte <laforge@netfilter.org>
++ * IP tables module for matching the value of the TTL
++ * (C) 2000,2001 by Harald Welte <laforge@netfilter.org>
+  *
+- * Hop Limit modification target for ip6tables
+- * Maciej Soltysiak <solt@dns.toxicfilms.tv>
++ * Hop Limit matching module
++ * (C) 2001-2002 Maciej Soltysiak <solt@dns.toxicfilms.tv>
+  */
+ #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
++
++#include <linux/ip.h>
++#include <linux/ipv6.h>
+ #include <linux/module.h>
+ #include <linux/skbuff.h>
+-#include <linux/ip.h>
+-#include <linux/ipv6.h>
+-#include <net/checksum.h>
+ 
+ #include <linux/netfilter/x_tables.h>
+-#include <linux/netfilter_ipv4/ipt_TTL.h>
+-#include <linux/netfilter_ipv6/ip6t_HL.h>
++#include <linux/netfilter_ipv4/ipt_ttl.h>
++#include <linux/netfilter_ipv6/ip6t_hl.h>
+ 
+-MODULE_AUTHOR("Harald Welte <laforge@netfilter.org>");
+ MODULE_AUTHOR("Maciej Soltysiak <solt@dns.toxicfilms.tv>");
+-MODULE_DESCRIPTION("Xtables: Hoplimit/TTL Limit field modification target");
++MODULE_DESCRIPTION("Xtables: Hoplimit/TTL field match");
+ MODULE_LICENSE("GPL");
++MODULE_ALIAS("ipt_ttl");
++MODULE_ALIAS("ip6t_hl");
+ 
+-static unsigned int
+-ttl_tg(struct sk_buff *skb, const struct xt_action_param *par)
++static int ttl_mt_check(const struct xt_mtchk_param *par)
+ {
+-	struct iphdr *iph;
+-	const struct ipt_TTL_info *info = par->targinfo;
+-	int new_ttl;
++	const struct ipt_ttl_info *info = par->matchinfo;
+ 
+-	if (skb_ensure_writable(skb, sizeof(*iph)))
+-		return NF_DROP;
+-
+-	iph = ip_hdr(skb);
+-
+-	switch (info->mode) {
+-	case IPT_TTL_SET:
+-		new_ttl = info->ttl;
+-		break;
+-	case IPT_TTL_INC:
+-		new_ttl = iph->ttl + info->ttl;
+-		if (new_ttl > 255)
+-			new_ttl = 255;
+-		break;
+-	case IPT_TTL_DEC:
+-		new_ttl = iph->ttl - info->ttl;
+-		if (new_ttl < 0)
+-			new_ttl = 0;
+-		break;
+-	default:
+-		new_ttl = iph->ttl;
+-		break;
++	if (info->mode > IPT_TTL_GT) {
++		pr_info_ratelimited("Unknown TTL match mode: %d\n", info->mode);
++		return -EINVAL;
+ 	}
+ 
+-	if (new_ttl != iph->ttl) {
+-		csum_replace2(&iph->check, htons(iph->ttl << 8),
+-					   htons(new_ttl << 8));
+-		iph->ttl = new_ttl;
+-	}
+-
+-	return XT_CONTINUE;
+-}
+-
+-static unsigned int
+-hl_tg6(struct sk_buff *skb, const struct xt_action_param *par)
+-{
+-	struct ipv6hdr *ip6h;
+-	const struct ip6t_HL_info *info = par->targinfo;
+-	int new_hl;
+-
+-	if (skb_ensure_writable(skb, sizeof(*ip6h)))
+-		return NF_DROP;
+-
+-	ip6h = ipv6_hdr(skb);
+-
+-	switch (info->mode) {
+-	case IP6T_HL_SET:
+-		new_hl = info->hop_limit;
+-		break;
+-	case IP6T_HL_INC:
+-		new_hl = ip6h->hop_limit + info->hop_limit;
+-		if (new_hl > 255)
+-			new_hl = 255;
+-		break;
+-	case IP6T_HL_DEC:
+-		new_hl = ip6h->hop_limit - info->hop_limit;
+-		if (new_hl < 0)
+-			new_hl = 0;
+-		break;
+-	default:
+-		new_hl = ip6h->hop_limit;
+-		break;
+-	}
+-
+-	ip6h->hop_limit = new_hl;
+-
+-	return XT_CONTINUE;
+-}
+-
+-static int ttl_tg_check(const struct xt_tgchk_param *par)
+-{
+-	const struct ipt_TTL_info *info = par->targinfo;
+-
+-	if (info->mode > IPT_TTL_MAXMODE)
+-		return -EINVAL;
+-	if (info->mode != IPT_TTL_SET && info->ttl == 0)
+-		return -EINVAL;
+ 	return 0;
+ }
+ 
+-static int hl_tg6_check(const struct xt_tgchk_param *par)
++static bool ttl_mt(const struct sk_buff *skb, struct xt_action_param *par)
+ {
+-	const struct ip6t_HL_info *info = par->targinfo;
++	const struct ipt_ttl_info *info = par->matchinfo;
++	const u8 ttl = ip_hdr(skb)->ttl;
+ 
+-	if (info->mode > IP6T_HL_MAXMODE)
++	switch (info->mode) {
++	case IPT_TTL_EQ:
++		return ttl == info->ttl;
++	case IPT_TTL_NE:
++		return ttl != info->ttl;
++	case IPT_TTL_LT:
++		return ttl < info->ttl;
++	case IPT_TTL_GT:
++		return ttl > info->ttl;
++	}
++
++	return false;
++}
++
++static int hl_mt6_check(const struct xt_mtchk_param *par)
++{
++	const struct ip6t_hl_info *info = par->matchinfo;
++
++	if (info->mode > IP6T_HL_GT) {
++		pr_info_ratelimited("Unknown Hop Limit match mode: %d\n", info->mode);
+ 		return -EINVAL;
+-	if (info->mode != IP6T_HL_SET && info->hop_limit == 0)
+-		return -EINVAL;
++	}
++
+ 	return 0;
+ }
+ 
+-static struct xt_target hl_tg_reg[] __read_mostly = {
++static bool hl_mt6(const struct sk_buff *skb, struct xt_action_param *par)
++{
++	const struct ip6t_hl_info *info = par->matchinfo;
++	const struct ipv6hdr *ip6h = ipv6_hdr(skb);
++
++	switch (info->mode) {
++	case IP6T_HL_EQ:
++		return ip6h->hop_limit == info->hop_limit;
++	case IP6T_HL_NE:
++		return ip6h->hop_limit != info->hop_limit;
++	case IP6T_HL_LT:
++		return ip6h->hop_limit < info->hop_limit;
++	case IP6T_HL_GT:
++		return ip6h->hop_limit > info->hop_limit;
++	}
++
++	return false;
++}
++
++static struct xt_match hl_mt_reg[] __read_mostly = {
+ 	{
+-		.name       = "TTL",
++		.name       = "ttl",
+ 		.revision   = 0,
+ 		.family     = NFPROTO_IPV4,
+-		.target     = ttl_tg,
+-		.targetsize = sizeof(struct ipt_TTL_info),
+-		.table      = "mangle",
+-		.checkentry = ttl_tg_check,
++		.checkentry = ttl_mt_check,
++		.match      = ttl_mt,
++		.matchsize  = sizeof(struct ipt_ttl_info),
+ 		.me         = THIS_MODULE,
+ 	},
+ 	{
+-		.name       = "HL",
++		.name       = "hl",
+ 		.revision   = 0,
+ 		.family     = NFPROTO_IPV6,
+-		.target     = hl_tg6,
+-		.targetsize = sizeof(struct ip6t_HL_info),
+-		.table      = "mangle",
+-		.checkentry = hl_tg6_check,
++		.checkentry = hl_mt6_check,
++		.match      = hl_mt6,
++		.matchsize  = sizeof(struct ip6t_hl_info),
+ 		.me         = THIS_MODULE,
+ 	},
+ };
+ 
+-static int __init hl_tg_init(void)
++static int __init hl_mt_init(void)
+ {
+-	return xt_register_targets(hl_tg_reg, ARRAY_SIZE(hl_tg_reg));
++	return xt_register_matches(hl_mt_reg, ARRAY_SIZE(hl_mt_reg));
+ }
+ 
+-static void __exit hl_tg_exit(void)
++static void __exit hl_mt_exit(void)
+ {
+-	xt_unregister_targets(hl_tg_reg, ARRAY_SIZE(hl_tg_reg));
++	xt_unregister_matches(hl_mt_reg, ARRAY_SIZE(hl_mt_reg));
+ }
+ 
+-module_init(hl_tg_init);
+-module_exit(hl_tg_exit);
+-MODULE_ALIAS("ipt_TTL");
+-MODULE_ALIAS("ip6t_HL");
++module_init(hl_mt_init);
++module_exit(hl_mt_exit);
+--- a/net/netfilter/xt_RATEEST.c
++++ b/net/netfilter/xt_RATEEST.c
+@@ -5,244 +5,154 @@
+ #include <linux/module.h>
+ #include <linux/skbuff.h>
+ #include <linux/gen_stats.h>
+-#include <linux/jhash.h>
+-#include <linux/rtnetlink.h>
+-#include <linux/random.h>
+-#include <linux/slab.h>
+-#include <net/gen_stats.h>
+-#include <net/netlink.h>
+-#include <net/netns/generic.h>
+ 
+ #include <linux/netfilter/x_tables.h>
+-#include <linux/netfilter/xt_RATEEST.h>
++#include <linux/netfilter/xt_rateest.h>
+ #include <net/netfilter/xt_rateest.h>
+ 
+-#define RATEEST_HSIZE	16
+ 
+-struct xt_rateest_net {
+-	struct mutex hash_lock;
+-	struct hlist_head hash[RATEEST_HSIZE];
+-};
++static bool
++xt_rateest_mt(const struct sk_buff *skb, struct xt_action_param *par)
++{
++	const struct xt_rateest_match_info *info = par->matchinfo;
++	struct gnet_stats_rate_est64 sample = {0};
++	u64 bps1, bps2, pps1, pps2;
++	bool ret = true;
+ 
+-static unsigned int xt_rateest_id;
++	gen_estimator_read(&info->est1->rate_est, &sample);
+ 
+-static unsigned int jhash_rnd __read_mostly;
++	if (info->flags & XT_RATEEST_MATCH_DELTA) {
++		bps1 = info->bps1 >= sample.bps ? info->bps1 - sample.bps : 0;
++		pps1 = info->pps1 >= sample.pps ? info->pps1 - sample.pps : 0;
++	} else {
++		bps1 = sample.bps;
++		pps1 = sample.pps;
++	}
+ 
+-static unsigned int xt_rateest_hash(const char *name)
+-{
+-	return jhash(name, sizeof_field(struct xt_rateest, name), jhash_rnd) &
+-	       (RATEEST_HSIZE - 1);
+-}
++	if (info->flags & XT_RATEEST_MATCH_ABS) {
++		bps2 = info->bps2;
++		pps2 = info->pps2;
++	} else {
++		gen_estimator_read(&info->est2->rate_est, &sample);
+ 
+-static void xt_rateest_hash_insert(struct xt_rateest_net *xn,
+-				   struct xt_rateest *est)
+-{
+-	unsigned int h;
+-
+-	h = xt_rateest_hash(est->name);
+-	hlist_add_head(&est->list, &xn->hash[h]);
+-}
+-
+-static struct xt_rateest *__xt_rateest_lookup(struct xt_rateest_net *xn,
+-					      const char *name)
+-{
+-	struct xt_rateest *est;
+-	unsigned int h;
+-
+-	h = xt_rateest_hash(name);
+-	hlist_for_each_entry(est, &xn->hash[h], list) {
+-		if (strcmp(est->name, name) == 0) {
+-			est->refcnt++;
+-			return est;
++		if (info->flags & XT_RATEEST_MATCH_DELTA) {
++			bps2 = info->bps2 >= sample.bps ? info->bps2 - sample.bps : 0;
++			pps2 = info->pps2 >= sample.pps ? info->pps2 - sample.pps : 0;
++		} else {
++			bps2 = sample.bps;
++			pps2 = sample.pps;
+ 		}
+ 	}
+ 
+-	return NULL;
++	switch (info->mode) {
++	case XT_RATEEST_MATCH_LT:
++		if (info->flags & XT_RATEEST_MATCH_BPS)
++			ret &= bps1 < bps2;
++		if (info->flags & XT_RATEEST_MATCH_PPS)
++			ret &= pps1 < pps2;
++		break;
++	case XT_RATEEST_MATCH_GT:
++		if (info->flags & XT_RATEEST_MATCH_BPS)
++			ret &= bps1 > bps2;
++		if (info->flags & XT_RATEEST_MATCH_PPS)
++			ret &= pps1 > pps2;
++		break;
++	case XT_RATEEST_MATCH_EQ:
++		if (info->flags & XT_RATEEST_MATCH_BPS)
++			ret &= bps1 == bps2;
++		if (info->flags & XT_RATEEST_MATCH_PPS)
++			ret &= pps1 == pps2;
++		break;
++	}
++
++	ret ^= info->flags & XT_RATEEST_MATCH_INVERT ? true : false;
++	return ret;
+ }
+ 
+-struct xt_rateest *xt_rateest_lookup(struct net *net, const char *name)
++static int xt_rateest_mt_checkentry(const struct xt_mtchk_param *par)
+ {
+-	struct xt_rateest_net *xn = net_generic(net, xt_rateest_id);
+-	struct xt_rateest *est;
++	struct xt_rateest_match_info *info = par->matchinfo;
++	struct xt_rateest *est1, *est2;
++	int ret = -EINVAL;
+ 
+-	mutex_lock(&xn->hash_lock);
+-	est = __xt_rateest_lookup(xn, name);
+-	mutex_unlock(&xn->hash_lock);
+-	return est;
+-}
+-EXPORT_SYMBOL_GPL(xt_rateest_lookup);
++	if (hweight32(info->flags & (XT_RATEEST_MATCH_ABS |
++				     XT_RATEEST_MATCH_REL)) != 1)
++		goto err1;
+ 
+-void xt_rateest_put(struct net *net, struct xt_rateest *est)
+-{
+-	struct xt_rateest_net *xn = net_generic(net, xt_rateest_id);
++	if (!(info->flags & (XT_RATEEST_MATCH_BPS | XT_RATEEST_MATCH_PPS)))
++		goto err1;
+ 
+-	mutex_lock(&xn->hash_lock);
+-	if (--est->refcnt == 0) {
+-		hlist_del(&est->list);
+-		gen_kill_estimator(&est->rate_est);
+-		/*
+-		 * gen_estimator est_timer() might access est->lock or bstats,
+-		 * wait a RCU grace period before freeing 'est'
+-		 */
+-		kfree_rcu(est, rcu);
++	switch (info->mode) {
++	case XT_RATEEST_MATCH_EQ:
++	case XT_RATEEST_MATCH_LT:
++	case XT_RATEEST_MATCH_GT:
++		break;
++	default:
++		goto err1;
+ 	}
+-	mutex_unlock(&xn->hash_lock);
+-}
+-EXPORT_SYMBOL_GPL(xt_rateest_put);
+ 
+-static unsigned int
+-xt_rateest_tg(struct sk_buff *skb, const struct xt_action_param *par)
+-{
+-	const struct xt_rateest_target_info *info = par->targinfo;
+-	struct gnet_stats_basic_sync *stats = &info->est->bstats;
+-
+-	spin_lock_bh(&info->est->lock);
+-	u64_stats_add(&stats->bytes, skb->len);
+-	u64_stats_inc(&stats->packets);
+-	spin_unlock_bh(&info->est->lock);
+-
+-	return XT_CONTINUE;
+-}
+-
+-static int xt_rateest_tg_checkentry(const struct xt_tgchk_param *par)
+-{
+-	struct xt_rateest_net *xn = net_generic(par->net, xt_rateest_id);
+-	struct xt_rateest_target_info *info = par->targinfo;
+-	struct xt_rateest *est;
+-	struct {
+-		struct nlattr		opt;
+-		struct gnet_estimator	est;
+-	} cfg;
+-	int ret;
+-
+-	if (strnlen(info->name, sizeof(est->name)) >= sizeof(est->name))
++	if (strnlen(info->name1, sizeof(info->name1)) >= sizeof(info->name1))
++		return -ENAMETOOLONG;
++	if (strnlen(info->name2, sizeof(info->name2)) >= sizeof(info->name2))
+ 		return -ENAMETOOLONG;
+ 
+-	net_get_random_once(&jhash_rnd, sizeof(jhash_rnd));
++	ret  = -ENOENT;
++	est1 = xt_rateest_lookup(par->net, info->name1);
++	if (!est1)
++		goto err1;
+ 
+-	mutex_lock(&xn->hash_lock);
+-	est = __xt_rateest_lookup(xn, info->name);
+-	if (est) {
+-		mutex_unlock(&xn->hash_lock);
+-		/*
+-		 * If estimator parameters are specified, they must match the
+-		 * existing estimator.
+-		 */
+-		if ((!info->interval && !info->ewma_log) ||
+-		    (info->interval != est->params.interval ||
+-		     info->ewma_log != est->params.ewma_log)) {
+-			xt_rateest_put(par->net, est);
+-			return -EINVAL;
+-		}
+-		info->est = est;
+-		return 0;
++	est2 = NULL;
++	if (info->flags & XT_RATEEST_MATCH_REL) {
++		est2 = xt_rateest_lookup(par->net, info->name2);
++		if (!est2)
++			goto err2;
+ 	}
+ 
+-	ret = -ENOMEM;
+-	est = kzalloc(sizeof(*est), GFP_KERNEL);
+-	if (!est)
+-		goto err1;
+-
+-	gnet_stats_basic_sync_init(&est->bstats);
+-	strscpy(est->name, info->name, sizeof(est->name));
+-	spin_lock_init(&est->lock);
+-	est->refcnt		= 1;
+-	est->params.interval	= info->interval;
+-	est->params.ewma_log	= info->ewma_log;
+-
+-	cfg.opt.nla_len		= nla_attr_size(sizeof(cfg.est));
+-	cfg.opt.nla_type	= TCA_STATS_RATE_EST;
+-	cfg.est.interval	= info->interval;
+-	cfg.est.ewma_log	= info->ewma_log;
+-
+-	ret = gen_new_estimator(&est->bstats, NULL, &est->rate_est,
+-				&est->lock, NULL, &cfg.opt);
+-	if (ret < 0)
+-		goto err2;
+-
+-	info->est = est;
+-	xt_rateest_hash_insert(xn, est);
+-	mutex_unlock(&xn->hash_lock);
++	info->est1 = est1;
++	info->est2 = est2;
+ 	return 0;
+ 
+ err2:
+-	kfree(est);
++	xt_rateest_put(par->net, est1);
+ err1:
+-	mutex_unlock(&xn->hash_lock);
+ 	return ret;
+ }
+ 
+-static void xt_rateest_tg_destroy(const struct xt_tgdtor_param *par)
++static void xt_rateest_mt_destroy(const struct xt_mtdtor_param *par)
+ {
+-	struct xt_rateest_target_info *info = par->targinfo;
++	struct xt_rateest_match_info *info = par->matchinfo;
+ 
+-	xt_rateest_put(par->net, info->est);
++	xt_rateest_put(par->net, info->est1);
++	if (info->est2)
++		xt_rateest_put(par->net, info->est2);
+ }
+ 
+-static struct xt_target xt_rateest_tg_reg[] __read_mostly = {
+-	{
+-		.name       = "RATEEST",
+-		.revision   = 0,
+-		.family     = NFPROTO_IPV4,
+-		.target     = xt_rateest_tg,
+-		.checkentry = xt_rateest_tg_checkentry,
+-		.destroy    = xt_rateest_tg_destroy,
+-		.targetsize = sizeof(struct xt_rateest_target_info),
+-		.usersize   = offsetof(struct xt_rateest_target_info, est),
+-		.me         = THIS_MODULE,
+-	},
+-#if IS_ENABLED(CONFIG_IP6_NF_IPTABLES)
+-	{
+-		.name       = "RATEEST",
+-		.revision   = 0,
+-		.family     = NFPROTO_IPV6,
+-		.target     = xt_rateest_tg,
+-		.checkentry = xt_rateest_tg_checkentry,
+-		.destroy    = xt_rateest_tg_destroy,
+-		.targetsize = sizeof(struct xt_rateest_target_info),
+-		.usersize   = offsetof(struct xt_rateest_target_info, est),
+-		.me         = THIS_MODULE,
+-	},
+-#endif
++static struct xt_match xt_rateest_mt_reg __read_mostly = {
++	.name       = "rateest",
++	.revision   = 0,
++	.family     = NFPROTO_UNSPEC,
++	.match      = xt_rateest_mt,
++	.checkentry = xt_rateest_mt_checkentry,
++	.destroy    = xt_rateest_mt_destroy,
++	.matchsize  = sizeof(struct xt_rateest_match_info),
++	.usersize   = offsetof(struct xt_rateest_match_info, est1),
++	.me         = THIS_MODULE,
+ };
+ 
+-static __net_init int xt_rateest_net_init(struct net *net)
++static int __init xt_rateest_mt_init(void)
+ {
+-	struct xt_rateest_net *xn = net_generic(net, xt_rateest_id);
+-	int i;
+-
+-	mutex_init(&xn->hash_lock);
+-	for (i = 0; i < ARRAY_SIZE(xn->hash); i++)
+-		INIT_HLIST_HEAD(&xn->hash[i]);
+-	return 0;
++	return xt_register_match(&xt_rateest_mt_reg);
+ }
+ 
+-static struct pernet_operations xt_rateest_net_ops = {
+-	.init = xt_rateest_net_init,
+-	.id   = &xt_rateest_id,
+-	.size = sizeof(struct xt_rateest_net),
+-};
+-
+-static int __init xt_rateest_tg_init(void)
++static void __exit xt_rateest_mt_fini(void)
+ {
+-	int err = register_pernet_subsys(&xt_rateest_net_ops);
+-
+-	if (err)
+-		return err;
+-	return xt_register_targets(xt_rateest_tg_reg, ARRAY_SIZE(xt_rateest_tg_reg));
++	xt_unregister_match(&xt_rateest_mt_reg);
+ }
+-
+-static void __exit xt_rateest_tg_fini(void)
+-{
+-	xt_unregister_targets(xt_rateest_tg_reg, ARRAY_SIZE(xt_rateest_tg_reg));
+-	unregister_pernet_subsys(&xt_rateest_net_ops);
+-}
+-
+ 
+ MODULE_AUTHOR("Patrick McHardy <kaber@trash.net>");
+ MODULE_LICENSE("GPL");
+-MODULE_DESCRIPTION("Xtables: packet rate estimator");
+-MODULE_ALIAS("ipt_RATEEST");
+-MODULE_ALIAS("ip6t_RATEEST");
+-module_init(xt_rateest_tg_init);
+-module_exit(xt_rateest_tg_fini);
++MODULE_DESCRIPTION("xtables rate estimator match");
++MODULE_ALIAS("ipt_rateest");
++MODULE_ALIAS("ip6t_rateest");
++module_init(xt_rateest_mt_init);
++module_exit(xt_rateest_mt_fini);
+--- a/net/netfilter/xt_TCPMSS.c
++++ b/net/netfilter/xt_TCPMSS.c
+@@ -1,345 +1,107 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+-/*
+- * This is a module which is used for setting the MSS option in TCP packets.
+- *
+- * Copyright (C) 2000 Marc Boucher <marc@mbsi.ca>
+- * Copyright (C) 2007 Patrick McHardy <kaber@trash.net>
++/* Kernel module to match TCP MSS values. */
++
++/* Copyright (C) 2000 Marc Boucher <marc@mbsi.ca>
++ * Portions (C) 2005 by Harald Welte <laforge@netfilter.org>
+  */
+-#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
++
+ #include <linux/module.h>
+ #include <linux/skbuff.h>
+-#include <linux/ip.h>
+-#include <linux/gfp.h>
+-#include <linux/ipv6.h>
+-#include <linux/tcp.h>
+-#include <net/dst.h>
+-#include <net/flow.h>
+-#include <net/ipv6.h>
+-#include <net/route.h>
+ #include <net/tcp.h>
++
++#include <linux/netfilter/xt_tcpmss.h>
++#include <linux/netfilter/x_tables.h>
+ 
+ #include <linux/netfilter_ipv4/ip_tables.h>
+ #include <linux/netfilter_ipv6/ip6_tables.h>
+-#include <linux/netfilter/x_tables.h>
+-#include <linux/netfilter/xt_tcpudp.h>
+-#include <linux/netfilter/xt_TCPMSS.h>
+ 
+ MODULE_LICENSE("GPL");
+ MODULE_AUTHOR("Marc Boucher <marc@mbsi.ca>");
+-MODULE_DESCRIPTION("Xtables: TCP Maximum Segment Size (MSS) adjustment");
+-MODULE_ALIAS("ipt_TCPMSS");
+-MODULE_ALIAS("ip6t_TCPMSS");
++MODULE_DESCRIPTION("Xtables: TCP MSS match");
++MODULE_ALIAS("ipt_tcpmss");
++MODULE_ALIAS("ip6t_tcpmss");
+ 
+-static inline unsigned int
+-optlen(const u_int8_t *opt, unsigned int offset)
++static bool
++tcpmss_mt(const struct sk_buff *skb, struct xt_action_param *par)
+ {
+-	/* Beware zero-length options: make finite progress */
+-	if (opt[offset] <= TCPOPT_NOP || opt[offset+1] == 0)
+-		return 1;
+-	else
+-		return opt[offset+1];
+-}
++	const struct xt_tcpmss_match_info *info = par->matchinfo;
++	const struct tcphdr *th;
++	struct tcphdr _tcph;
++	/* tcp.doff is only 4 bits, ie. max 15 * 4 bytes */
++	const u_int8_t *op;
++	u8 _opt[15 * 4 - sizeof(_tcph)];
++	unsigned int i, optlen;
+ 
+-static u_int32_t tcpmss_reverse_mtu(struct net *net,
+-				    const struct sk_buff *skb,
+-				    unsigned int family)
+-{
+-	struct flowi fl;
+-	struct rtable *rt = NULL;
+-	u_int32_t mtu     = ~0U;
++	/* If we don't have the whole header, drop packet. */
++	th = skb_header_pointer(skb, par->thoff, sizeof(_tcph), &_tcph);
++	if (th == NULL)
++		goto dropit;
+ 
+-	if (family == PF_INET) {
+-		struct flowi4 *fl4 = &fl.u.ip4;
+-		memset(fl4, 0, sizeof(*fl4));
+-		fl4->daddr = ip_hdr(skb)->saddr;
+-	} else {
+-		struct flowi6 *fl6 = &fl.u.ip6;
++	/* Malformed. */
++	if (th->doff*4 < sizeof(*th))
++		goto dropit;
+ 
+-		memset(fl6, 0, sizeof(*fl6));
+-		fl6->daddr = ipv6_hdr(skb)->saddr;
++	optlen = th->doff*4 - sizeof(*th);
++	if (!optlen)
++		goto out;
++
++	/* Truncated options. */
++	op = skb_header_pointer(skb, par->thoff + sizeof(*th), optlen, _opt);
++	if (op == NULL)
++		goto dropit;
++
++	for (i = 0; i < optlen; ) {
++		if (op[i] == TCPOPT_MSS
++		    && (optlen - i) >= TCPOLEN_MSS
++		    && op[i+1] == TCPOLEN_MSS) {
++			u_int16_t mssval;
++
++			mssval = (op[i+2] << 8) | op[i+3];
++
++			return (mssval >= info->mss_min &&
++				mssval <= info->mss_max) ^ info->invert;
++		}
++		if (op[i] < 2 || i == optlen - 1)
++			i++;
++		else
++			i += op[i+1] ? : 1;
+ 	}
++out:
++	return info->invert;
+ 
+-	nf_route(net, (struct dst_entry **)&rt, &fl, false, family);
+-	if (rt != NULL) {
+-		mtu = dst_mtu(&rt->dst);
+-		dst_release(&rt->dst);
+-	}
+-	return mtu;
+-}
+-
+-static int
+-tcpmss_mangle_packet(struct sk_buff *skb,
+-		     const struct xt_action_param *par,
+-		     unsigned int family,
+-		     unsigned int tcphoff,
+-		     unsigned int minlen)
+-{
+-	const struct xt_tcpmss_info *info = par->targinfo;
+-	struct tcphdr *tcph;
+-	int len, tcp_hdrlen;
+-	unsigned int i;
+-	__be16 oldval;
+-	u16 newmss;
+-	u8 *opt;
+-
+-	/* This is a fragment, no TCP header is available */
+-	if (par->fragoff != 0)
+-		return 0;
+-
+-	if (skb_ensure_writable(skb, skb->len))
+-		return -1;
+-
+-	len = skb->len - tcphoff;
+-	if (len < (int)sizeof(struct tcphdr))
+-		return -1;
+-
+-	tcph = (struct tcphdr *)(skb_network_header(skb) + tcphoff);
+-	tcp_hdrlen = tcph->doff * 4;
+-
+-	if (len < tcp_hdrlen || tcp_hdrlen < sizeof(struct tcphdr))
+-		return -1;
+-
+-	if (info->mss == XT_TCPMSS_CLAMP_PMTU) {
+-		struct net *net = xt_net(par);
+-		unsigned int in_mtu = tcpmss_reverse_mtu(net, skb, family);
+-		unsigned int min_mtu = min(dst_mtu(skb_dst(skb)), in_mtu);
+-
+-		if (min_mtu <= minlen) {
+-			net_err_ratelimited("unknown or invalid path-MTU (%u)\n",
+-					    min_mtu);
+-			return -1;
+-		}
+-		newmss = min_mtu - minlen;
+-	} else
+-		newmss = info->mss;
+-
+-	opt = (u_int8_t *)tcph;
+-	for (i = sizeof(struct tcphdr); i <= tcp_hdrlen - TCPOLEN_MSS; i += optlen(opt, i)) {
+-		if (opt[i] == TCPOPT_MSS && opt[i+1] == TCPOLEN_MSS) {
+-			u_int16_t oldmss;
+-
+-			oldmss = (opt[i+2] << 8) | opt[i+3];
+-
+-			/* Never increase MSS, even when setting it, as
+-			 * doing so results in problems for hosts that rely
+-			 * on MSS being set correctly.
+-			 */
+-			if (oldmss <= newmss)
+-				return 0;
+-
+-			opt[i+2] = (newmss & 0xff00) >> 8;
+-			opt[i+3] = newmss & 0x00ff;
+-
+-			inet_proto_csum_replace2(&tcph->check, skb,
+-						 htons(oldmss), htons(newmss),
+-						 false);
+-			return 0;
+-		}
+-	}
+-
+-	/* There is data after the header so the option can't be added
+-	 * without moving it, and doing so may make the SYN packet
+-	 * itself too large. Accept the packet unmodified instead.
+-	 */
+-	if (len > tcp_hdrlen)
+-		return 0;
+-
+-	/* tcph->doff has 4 bits, do not wrap it to 0 */
+-	if (tcp_hdrlen >= 15 * 4)
+-		return 0;
+-
+-	/*
+-	 * MSS Option not found ?! add it..
+-	 */
+-	if (skb_tailroom(skb) < TCPOLEN_MSS) {
+-		if (pskb_expand_head(skb, 0,
+-				     TCPOLEN_MSS - skb_tailroom(skb),
+-				     GFP_ATOMIC))
+-			return -1;
+-		tcph = (struct tcphdr *)(skb_network_header(skb) + tcphoff);
+-	}
+-
+-	skb_put(skb, TCPOLEN_MSS);
+-
+-	/*
+-	 * IPv4: RFC 1122 states "If an MSS option is not received at
+-	 * connection setup, TCP MUST assume a default send MSS of 536".
+-	 * IPv6: RFC 2460 states IPv6 has a minimum MTU of 1280 and a minimum
+-	 * length IPv6 header of 60, ergo the default MSS value is 1220
+-	 * Since no MSS was provided, we must use the default values
+-	 */
+-	if (xt_family(par) == NFPROTO_IPV4)
+-		newmss = min(newmss, (u16)536);
+-	else
+-		newmss = min(newmss, (u16)1220);
+-
+-	opt = (u_int8_t *)tcph + sizeof(struct tcphdr);
+-	memmove(opt + TCPOLEN_MSS, opt, len - sizeof(struct tcphdr));
+-
+-	inet_proto_csum_replace2(&tcph->check, skb,
+-				 htons(len), htons(len + TCPOLEN_MSS), true);
+-	opt[0] = TCPOPT_MSS;
+-	opt[1] = TCPOLEN_MSS;
+-	opt[2] = (newmss & 0xff00) >> 8;
+-	opt[3] = newmss & 0x00ff;
+-
+-	inet_proto_csum_replace4(&tcph->check, skb, 0, *((__be32 *)opt), false);
+-
+-	oldval = ((__be16 *)tcph)[6];
+-	tcph->doff += TCPOLEN_MSS/4;
+-	inet_proto_csum_replace2(&tcph->check, skb,
+-				 oldval, ((__be16 *)tcph)[6], false);
+-	return TCPOLEN_MSS;
+-}
+-
+-static unsigned int
+-tcpmss_tg4(struct sk_buff *skb, const struct xt_action_param *par)
+-{
+-	struct iphdr *iph = ip_hdr(skb);
+-	__be16 newlen;
+-	int ret;
+-
+-	ret = tcpmss_mangle_packet(skb, par,
+-				   PF_INET,
+-				   iph->ihl * 4,
+-				   sizeof(*iph) + sizeof(struct tcphdr));
+-	if (ret < 0)
+-		return NF_DROP;
+-	if (ret > 0) {
+-		iph = ip_hdr(skb);
+-		newlen = htons(ntohs(iph->tot_len) + ret);
+-		csum_replace2(&iph->check, iph->tot_len, newlen);
+-		iph->tot_len = newlen;
+-	}
+-	return XT_CONTINUE;
+-}
+-
+-#if IS_ENABLED(CONFIG_IP6_NF_IPTABLES)
+-static unsigned int
+-tcpmss_tg6(struct sk_buff *skb, const struct xt_action_param *par)
+-{
+-	struct ipv6hdr *ipv6h = ipv6_hdr(skb);
+-	u8 nexthdr;
+-	__be16 frag_off, oldlen, newlen;
+-	int tcphoff;
+-	int ret;
+-
+-	nexthdr = ipv6h->nexthdr;
+-	tcphoff = ipv6_skip_exthdr(skb, sizeof(*ipv6h), &nexthdr, &frag_off);
+-	if (tcphoff < 0)
+-		return NF_DROP;
+-	ret = tcpmss_mangle_packet(skb, par,
+-				   PF_INET6,
+-				   tcphoff,
+-				   sizeof(*ipv6h) + sizeof(struct tcphdr));
+-	if (ret < 0)
+-		return NF_DROP;
+-	if (ret > 0) {
+-		ipv6h = ipv6_hdr(skb);
+-		oldlen = ipv6h->payload_len;
+-		newlen = htons(ntohs(oldlen) + ret);
+-		if (skb->ip_summed == CHECKSUM_COMPLETE)
+-			skb->csum = csum_add(csum_sub(skb->csum, (__force __wsum)oldlen),
+-					     (__force __wsum)newlen);
+-		ipv6h->payload_len = newlen;
+-	}
+-	return XT_CONTINUE;
+-}
+-#endif
+-
+-/* Must specify -p tcp --syn */
+-static inline bool find_syn_match(const struct xt_entry_match *m)
+-{
+-	const struct xt_tcp *tcpinfo = (const struct xt_tcp *)m->data;
+-
+-	if (strcmp(m->u.kernel.match->name, "tcp") == 0 &&
+-	    tcpinfo->flg_cmp & TCPHDR_SYN &&
+-	    !(tcpinfo->invflags & XT_TCP_INV_FLAGS))
+-		return true;
+-
++dropit:
++	par->hotdrop = true;
+ 	return false;
+ }
+ 
+-static int tcpmss_tg4_check(const struct xt_tgchk_param *par)
+-{
+-	const struct xt_tcpmss_info *info = par->targinfo;
+-	const struct ipt_entry *e = par->entryinfo;
+-	const struct xt_entry_match *ematch;
+-
+-	if (info->mss == XT_TCPMSS_CLAMP_PMTU &&
+-	    (par->hook_mask & ~((1 << NF_INET_FORWARD) |
+-			   (1 << NF_INET_LOCAL_OUT) |
+-			   (1 << NF_INET_POST_ROUTING))) != 0) {
+-		pr_info_ratelimited("path-MTU clamping only supported in FORWARD, OUTPUT and POSTROUTING hooks\n");
+-		return -EINVAL;
+-	}
+-	if (par->nft_compat)
+-		return 0;
+-
+-	xt_ematch_foreach(ematch, e)
+-		if (find_syn_match(ematch))
+-			return 0;
+-	pr_info_ratelimited("Only works on TCP SYN packets\n");
+-	return -EINVAL;
+-}
+-
+-#if IS_ENABLED(CONFIG_IP6_NF_IPTABLES)
+-static int tcpmss_tg6_check(const struct xt_tgchk_param *par)
+-{
+-	const struct xt_tcpmss_info *info = par->targinfo;
+-	const struct ip6t_entry *e = par->entryinfo;
+-	const struct xt_entry_match *ematch;
+-
+-	if (info->mss == XT_TCPMSS_CLAMP_PMTU &&
+-	    (par->hook_mask & ~((1 << NF_INET_FORWARD) |
+-			   (1 << NF_INET_LOCAL_OUT) |
+-			   (1 << NF_INET_POST_ROUTING))) != 0) {
+-		pr_info_ratelimited("path-MTU clamping only supported in FORWARD, OUTPUT and POSTROUTING hooks\n");
+-		return -EINVAL;
+-	}
+-	if (par->nft_compat)
+-		return 0;
+-
+-	xt_ematch_foreach(ematch, e)
+-		if (find_syn_match(ematch))
+-			return 0;
+-	pr_info_ratelimited("Only works on TCP SYN packets\n");
+-	return -EINVAL;
+-}
+-#endif
+-
+-static struct xt_target tcpmss_tg_reg[] __read_mostly = {
++static struct xt_match tcpmss_mt_reg[] __read_mostly = {
+ 	{
++		.name		= "tcpmss",
+ 		.family		= NFPROTO_IPV4,
+-		.name		= "TCPMSS",
+-		.checkentry	= tcpmss_tg4_check,
+-		.target		= tcpmss_tg4,
+-		.targetsize	= sizeof(struct xt_tcpmss_info),
++		.match		= tcpmss_mt,
++		.matchsize	= sizeof(struct xt_tcpmss_match_info),
+ 		.proto		= IPPROTO_TCP,
+ 		.me		= THIS_MODULE,
+ 	},
+-#if IS_ENABLED(CONFIG_IP6_NF_IPTABLES)
+ 	{
++		.name		= "tcpmss",
+ 		.family		= NFPROTO_IPV6,
+-		.name		= "TCPMSS",
+-		.checkentry	= tcpmss_tg6_check,
+-		.target		= tcpmss_tg6,
+-		.targetsize	= sizeof(struct xt_tcpmss_info),
++		.match		= tcpmss_mt,
++		.matchsize	= sizeof(struct xt_tcpmss_match_info),
+ 		.proto		= IPPROTO_TCP,
+ 		.me		= THIS_MODULE,
+ 	},
+-#endif
+ };
+ 
+-static int __init tcpmss_tg_init(void)
++static int __init tcpmss_mt_init(void)
+ {
+-	return xt_register_targets(tcpmss_tg_reg, ARRAY_SIZE(tcpmss_tg_reg));
++	return xt_register_matches(tcpmss_mt_reg, ARRAY_SIZE(tcpmss_mt_reg));
+ }
+ 
+-static void __exit tcpmss_tg_exit(void)
++static void __exit tcpmss_mt_exit(void)
+ {
+-	xt_unregister_targets(tcpmss_tg_reg, ARRAY_SIZE(tcpmss_tg_reg));
++	xt_unregister_matches(tcpmss_mt_reg, ARRAY_SIZE(tcpmss_mt_reg));
+ }
+ 
+-module_init(tcpmss_tg_init);
+-module_exit(tcpmss_tg_exit);
++module_init(tcpmss_mt_init);
++module_exit(tcpmss_mt_exit);
+--- a/sound/soc/codecs/cs48l32.c
++++ b/sound/soc/codecs/cs48l32.c
+@@ -3968,6 +3968,7 @@
+ 
+ 	switch (hwid) {
+ 	case CS48L32_SILICON_ID:
++	case CS48L33_SILICON_ID:
+ 		break;
+ 	default:
+ 		ret = -ENODEV;
+@@ -4048,11 +4049,13 @@
+ 
+ static const struct of_device_id cs48l32_of_match[] = {
+ 	{ .compatible = "cirrus,cs48l32", },
++	{ .compatible = "cirrus,cs48l33", },
+ 	{},
+ };
+ 
+ static const struct spi_device_id cs48l32_spi_ids[] = {
+ 	{ "cs48l32", },
++	{ "cs48l33", },
+ 	{ },
+ };
+ MODULE_DEVICE_TABLE(spi, cs48l32_spi_ids);
+--- a/sound/soc/codecs/cs48l32.h
++++ b/sound/soc/codecs/cs48l32.h
+@@ -13,6 +13,15 @@
+ #include "wm_adsp.h"
+ 
+ #define CS48L32_SILICON_ID	0x48a32
++
++/*
++ * The Galaxy Tab S6 fits a CS48L33, which is the same Tacna family part with a
++ * different part number in the low byte of DEVID. The stock driver rejects it
++ * with "Unknown device ID: 0x48a33" before touching anything else. Samsung's own
++ * firmware for this device is named cs48l32-dsp1-ctrl.wmfw, which is the reason
++ * to believe the two are register compatible.
++ */
++#define CS48L33_SILICON_ID	0x48a33
+ 
+ #define CS48L32_32K_MCLK1		0
+ 
+--- a/sound/soc/qcom/sm8250.c
++++ b/sound/soc/qcom/sm8250.c
+@@ -8,6 +8,8 @@
+ #include <sound/soc-dapm.h>
+ #include <sound/pcm.h>
+ #include <sound/pcm_params.h>
++#include <linux/regulator/consumer.h>
++#include <sound/cs48l32.h>
+ #include <linux/soundwire/sdw.h>
+ #include <sound/jack.h>
+ #include <linux/input-event-codes.h>
+@@ -17,6 +19,38 @@
+ #include "sdw.h"
+ 
+ #define MI2S_BCLK_RATE		1536000
++
++/* Secondary TDM on the Galaxy Tab S6: four CS35L41 amps share one bus. */
++#define TDM_SLOTS		4
++
++/*
++ * 32 bit slots, which with 4 slots at 48 kHz is the 6.144 MHz Samsung's own
++ * overlay programs (qcom,msm-cpudai-tdm-clk-rate = <0x5dc000>).
++ *
++ * The subtlety is that the DSP and the amps do not agree on what a slot is.
++ * cs35l41_pcm_hw_params() writes params_width() into the amp's ASP slot width,
++ * and the amp supports only S16_LE and S24_LE, so with 16 bit samples each amp
++ * counts the frame in 16 bit slots while the DSP lays it out in 32 bit ones.
++ * Amp N's data therefore starts at amp-slot N * (32 / 16), not at slot N.
++ *
++ * Getting that wrong is not silence, it is noise: with slots 0,1,2,3 the first
++ * amp gets real audio, the second gets the padding half of the first channel,
++ * the third gets the second channel, and it plays out of every speaker while
++ * sounding like loud crunching.
++ */
++#define TDM_SLOT_WIDTH		32
++
++/*
++ * Which slot each channel goes in, as BYTE offsets into the frame: slot n
++ * starts at byte n * TDM_SLOT_WIDTH / 8.
++ *
++ * These are not slot indices, and the DSP is emphatic about it. Feeding it
++ * { 0, 1, 2, 3 } puts channel 1 one byte into slot 0 rather than at the start
++ * of slot 1, and AFE_PORT_CMD_SET_PARAM_V2 (0x100ef) comes back "DSP returned
++ * error[2]" with no audio at all. Same array shape as the downstream machine
++ * drivers, and for the same reason.
++ */
++static unsigned int tdm_slot_offset[TDM_SLOTS] = { 0, 4, 8, 12 };
+ 
+ struct sm8250_snd_data {
+ 	bool stream_prepared[AFE_PORT_MAX];
+@@ -64,9 +98,13 @@
+ 	struct snd_interval *channels = hw_param_interval(params,
+ 					SNDRV_PCM_HW_PARAM_CHANNELS);
+ 	struct snd_mask *fmt = hw_param_mask(params, SNDRV_PCM_HW_PARAM_FORMAT);
++	struct snd_soc_dai *cpu_dai = snd_soc_rtd_to_cpu(rtd, 0);
+ 
+ 	rate->min = rate->max = 48000;
+ 	channels->min = channels->max = 2;
++	if (cpu_dai->id == SECONDARY_TDM_RX_0 ||
++	    cpu_dai->id == SECONDARY_TDM_TX_0)
++		snd_mask_none(fmt);
+ 	snd_mask_set_format(fmt, SNDRV_PCM_FORMAT_S16_LE);
+ 
+ 	return 0;
+@@ -105,6 +143,66 @@
+ 		snd_soc_dai_set_fmt(cpu_dai, fmt);
+ 		snd_soc_dai_set_fmt(codec_dai, codec_dai_fmt);
+ 		break;
++	case SECONDARY_TDM_RX_0:
++	case SECONDARY_TDM_TX_0: {
++		struct snd_soc_dai *cdai;
++		int j;
++
++		fmt |= SND_SOC_DAIFMT_IB_NF | SND_SOC_DAIFMT_DSP_A;
++		codec_dai_fmt |= SND_SOC_DAIFMT_IB_NF | SND_SOC_DAIFMT_DSP_A;
++
++		snd_soc_dai_set_fmt(cpu_dai, fmt);
++
++		for_each_rtd_codec_dais(rtd, j, cdai)
++			snd_soc_dai_set_fmt(cdai, codec_dai_fmt);
++
++		/* clocks, slot geometry and channel maps: see hw_params */
++		break;
++	}
++	case QUINARY_MI2S_RX:
++	case QUINARY_MI2S_TX: {
++		struct snd_soc_dai *cdai;
++		int j, ret;
++
++		/*
++		 * The microphone path. The CS48L33 sits on this port, not on the
++		 * Secondary TDM bus the speaker amps use.
++		 */
++		fmt |= SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_I2S;
++		codec_dai_fmt |= SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_I2S;
++
++		snd_soc_dai_set_sysclk(cpu_dai, Q6AFE_LPASS_CLK_ID_QUI_MI2S_IBIT,
++				       MI2S_BCLK_RATE, SNDRV_PCM_STREAM_CAPTURE);
++		snd_soc_dai_set_fmt(cpu_dai, fmt);
++
++		for_each_rtd_codec_dais(rtd, j, cdai) {
++			snd_soc_dai_set_fmt(cdai, codec_dai_fmt);
++
++			/*
++			 * This codec needs its own clock tree started, which the
++			 * speaker amps never did: FLL1 locked to the ASP bit
++			 * clock and running at 49.152 MHz, then SYSCLK_1 taken
++			 * from FLL1 at 98.304 MHz. Both numbers are Samsung's,
++			 * out of cirrus,fll1-refclk-bclk and cirrus,sysclk in
++			 * their own card node.
++			 */
++			ret = snd_soc_component_set_pll(cdai->component,
++							CS48L32_FLL1_REFCLK,
++							CS48L32_FLL_SRC_ASP1_BCLK,
++							MI2S_BCLK_RATE, 49152000);
++			if (ret && ret != -ENOTSUPP)
++				return ret;
++
++			ret = snd_soc_component_set_sysclk(cdai->component,
++							   CS48L32_CLK_SYSCLK_1,
++							   CS48L32_CLK_SRC_FLL1,
++							   98304000,
++							   SND_SOC_CLOCK_IN);
++			if (ret && ret != -ENOTSUPP)
++				return ret;
++		}
++		break;
++	}
+ 	default:
+ 		break;
+ 	}
+@@ -123,12 +221,124 @@
+ 	sdw_release_stream(sruntime);
+ }
+ 
++static int sm8250_tdm_hw_params(struct snd_soc_pcm_runtime *rtd,
++				struct snd_pcm_hw_params *params,
++				int stream)
++{
++	struct snd_soc_dai *cpu_dai = snd_soc_rtd_to_cpu(rtd, 0);
++	unsigned int channels = params_channels(params);
++	unsigned int width = params_width(params);
++	unsigned int bclk, mask, per_slot;
++	struct snd_soc_dai *cdai;
++	int ret, j;
++
++	if (!channels || channels > TDM_SLOTS)
++		return -EINVAL;
++
++	/*
++	 * The fixup pins the backend to S16_LE, so this is a clean factor of
++	 * two. Guard it anyway: a sample width that does not divide the slot
++	 * width would silently misplace every amp.
++	 */
++	if (!width || TDM_SLOT_WIDTH % width)
++		return -EINVAL;
++	per_slot = TDM_SLOT_WIDTH / width;
++
++	mask = GENMASK(channels - 1, 0);
++	bclk = TDM_SLOTS * TDM_SLOT_WIDTH * params_rate(params);
++
++	ret = snd_soc_dai_set_sysclk(cpu_dai, Q6AFE_LPASS_CLK_ID_SEC_TDM_IBIT,
++				     bclk, SNDRV_PCM_STREAM_PLAYBACK);
++	if (ret)
++		return ret;
++
++	/*
++	 * The DSP needs both halves of this: the slot geometry, and a slot
++	 * mapping for every channel. Without the mapping,
++	 * afe_param_id_slot_mapping_cfg goes out all zeroes and
++	 * AFE_PORT_CMD_SET_PARAM_V2 (0x100ef) comes straight back as
++	 * "DSP returned error[2]", which says nothing about which half is wrong.
++	 */
++	if (stream == SNDRV_PCM_STREAM_PLAYBACK) {
++		ret = snd_soc_dai_set_tdm_slot(cpu_dai, 0, mask,
++					       TDM_SLOTS, TDM_SLOT_WIDTH);
++		if (ret)
++			return ret;
++
++		ret = snd_soc_dai_set_channel_map(cpu_dai, 0, NULL,
++						  channels, tdm_slot_offset);
++	} else {
++		ret = snd_soc_dai_set_tdm_slot(cpu_dai, mask, 0,
++					       TDM_SLOTS, TDM_SLOT_WIDTH);
++		if (ret)
++			return ret;
++
++		ret = snd_soc_dai_set_channel_map(cpu_dai, channels,
++						  tdm_slot_offset, 0, NULL);
++	}
++	if (ret)
++		return ret;
++
++	for_each_rtd_codec_dais(rtd, j, cdai) {
++		/*
++		 * Four amps, a stereo stream, and only `channels` slots carry
++		 * anything, so the two speaker pairs each take the same two
++		 * channels: amps 0 and 2 get channel 0, amps 1 and 3 get
++		 * channel 1. Mapping amp N to slot N instead parks half the
++		 * amps on slots nothing was written to, and on this tablet both
++		 * of the amps that did get audio sit at the same end, so it
++		 * plays out of one side only.
++		 *
++		 * The result is then scaled into the amp's own slot width, per
++		 * the TDM_SLOT_WIDTH comment. cs35l41 has no set_tdm_slot op, so
++		 * this goes in through set_channel_map.
++		 */
++		unsigned int slot = (j % channels) * per_slot;
++
++		/*
++		 * cs35l41 has TWO clock entry points and needs both. The
++		 * component one points its PLL at the ASP bit clock (clk id 0
++		 * is CS35L41_CLKID_SCLK), the DAI one sets the clock monitor
++		 * window. Miss them and the amp never finishes powering up:
++		 * cs35l41_global_enable() polls for PUP_DONE and gives up with
++		 * "Enable(1) failed: -110", which reads like a dead amp rather
++		 * than an unconfigured clock.
++		 */
++		ret = snd_soc_component_set_sysclk(cdai->component, 0, 0,
++						   bclk, SND_SOC_CLOCK_IN);
++		if (ret && ret != -ENOTSUPP)
++			return ret;
++
++		ret = snd_soc_dai_set_sysclk(cdai, 0, bclk, SND_SOC_CLOCK_IN);
++		if (ret && ret != -ENOTSUPP)
++			return ret;
++
++		ret = snd_soc_dai_set_channel_map(cdai, 1, &slot, 1, &slot);
++		if (ret && ret != -ENOTSUPP)
++			return ret;
++	}
++
++	return 0;
++}
++
+ static int sm8250_snd_hw_params(struct snd_pcm_substream *substream,
+ 				struct snd_pcm_hw_params *params)
+ {
+ 	struct snd_soc_pcm_runtime *rtd = snd_soc_substream_to_rtd(substream);
+ 	struct snd_soc_dai *cpu_dai = snd_soc_rtd_to_cpu(rtd, 0);
+ 	struct sm8250_snd_data *pdata = snd_soc_card_get_drvdata(rtd->card);
++	int ret;
++
++	switch (cpu_dai->id) {
++	case SECONDARY_TDM_RX_0:
++	case SECONDARY_TDM_TX_0:
++		ret = sm8250_tdm_hw_params(rtd, params, substream->stream);
++		if (ret)
++			return ret;
++		break;
++	default:
++		break;
++	}
+ 
+ 	return qcom_snd_sdw_hw_params(substream, params, &pdata->sruntime[cpu_dai->id]);
+ }
+@@ -212,6 +422,7 @@
+ 	{ .compatible = "fairphone,fp5-sndcard", .data = "qcm6490" },
+ 	{ .compatible = "qcom,qrb4210-rb2-sndcard", .data = "sm4250" },
+ 	{ .compatible = "qcom,qrb5165-rb5-sndcard", .data = "sm8250" },
++	{ .compatible = "qcom,sm8150-sndcard", .data = "sm8150" },
+ 	{ .compatible = "qcom,sm8250-sndcard", .data = "sm8250" },
+ 	{}
+ };
+--- a/tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus
++++ b/tools/memory-model/litmus-tests/Z6.0+pooncelock+poonceLock+pombonce.litmus
+@@ -1,12 +1,11 @@
+-C Z6.0+pooncelock+poonceLock+pombonce
++C Z6.0+pooncelock+pooncelock+pombonce
+ 
+ (*
+- * Result: Never
++ * Result: Sometimes
+  *
+- * This litmus test demonstrates how smp_mb__after_spinlock() may be
+- * used to ensure that accesses in different critical sections for a
+- * given lock running on different CPUs are nevertheless seen in order
+- * by CPUs not holding that lock.
++ * This example demonstrates that a pair of accesses made by different
++ * processes each while holding a given lock will not necessarily be
++ * seen as ordered by a third process not holding that lock.
+  *)
+ 
+ {}
+@@ -24,7 +23,6 @@
+ 	int r0;
+ 
+ 	spin_lock(mylock);
+-	smp_mb__after_spinlock();
+ 	r0 = READ_ONCE(*y);
+ 	WRITE_ONCE(*z, 1);
+ 	spin_unlock(mylock);
+--- /dev/null
++++ b/drivers/input/touchscreen/fts1ba90a.c
+@@ -0,0 +1,652 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * STMicroelectronics FTS1BA90A touchscreen driver (Samsung "FingerTip S").
++ *
++ * Minimal mainline-style port of Samsung's downstream fts_ts driver
++ * (Samsung_Kernel_sm8450_common_gts8x, drivers/input/touchscreen/stm/
++ * fts1ba90a/, GPL-2.0), with the sec_input factory/command layer removed.
++ *
++ * This part is NOT compatible with mainline stmfts.c: it uses 16-byte
++ * events read with opcodes 0x60 (one) / 0x61 (all remaining), and scan
++ * control via 0xA0, where stmfts speaks an 8-byte-event protocol with a
++ * different opcode map. Binding stmfts to it probes -ETIMEDOUT.
++ *
++ * Only firmware already resident in the IC is used; there is no firmware
++ * download path here. The Samsung bootloader chain leaves the IC flashed
++ * and this driver only resets and configures it.
++ */
++
++#include <linux/delay.h>
++#include <linux/i2c.h>
++#include <linux/input.h>
++#include <linux/input/mt.h>
++#include <linux/input/touchscreen.h>
++#include <linux/interrupt.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/of.h>
++#include <linux/regulator/consumer.h>
++
++#define FTS_EVENT_SIZE			16
++#define FTS_FIFO_MAX			32
++#define FTS_FINGER_MAX			10
++#define FTS_I2C_RETRY_CNT		3
++#define FTS_RETRY_COUNT			10
++
++/*
++ * How long to wait for a command's echo event.
++ *
++ * The old bound was FTS_RETRY_COUNT * 25 iterations of msleep(20), i.e. a flat
++ * five seconds for every command. That is only defensible for force
++ * calibration, which genuinely takes seconds. For the ordinary commands the
++ * echo either arrives promptly or, on this firmware (fw 0x0037), never arrives
++ * at all - and the scan-enable command 0xA0 is in the second category, so the
++ * driver sat out the full five seconds on every configure().
++ *
++ * That cost five seconds at probe AND five seconds on every single resume,
++ * which is most of the six second wake latency this device had: press the power
++ * button, wait six seconds, press it again because nothing happened.
++ */
++#define FTS_ECHO_POLL_MS		20
++#define FTS_ECHO_TIMEOUT_MS		300
++#define FTS_ECHO_TIMEOUT_CAL_MS		5000
++
++/* command opcodes (downstream fts_ts.h) */
++#define FTS_CMD_SENSE_OFF		0x11
++#define FTS_CMD_FORCE_CALIBRATION	0x13
++#define FTS_READ_DEVICE_ID		0x22
++#define FTS_READ_PANEL_INFO		0x23
++#define FTS_READ_FW_VERSION		0x24
++#define FTS_CMD_SET_TOUCH_FUNCTION	0x30
++#define FTS_READ_ONE_EVENT		0x60
++#define FTS_READ_ALL_EVENT		0x61
++#define FTS_CMD_CLEAR_ALL_EVENT		0x62
++
++/* chip id bytes returned by FTS_READ_DEVICE_ID */
++#define FTS_ID0				0x39
++#define FTS_ID1				0x36
++
++/* 0x30 touch-function bits: touch | palm | wet */
++#define FTS_TOUCHTYPE_DEFAULT_ENABLE	0x61
++
++/* event id, low 2 bits of byte 0 */
++#define FTS_COORDINATE_EVENT		0
++#define FTS_STATUS_EVENT		1
++#define FTS_GESTURE_EVENT		2
++#define FTS_VENDOR_EVENT		3
++
++/* status events (eid == FTS_STATUS_EVENT), stype in byte0 bits 2-5 */
++#define FTS_EVENT_STATUSTYPE_ERROR	1
++#define FTS_EVENT_STATUSTYPE_INFO	2
++#define FTS_ERR_EVENT_QUEUE_FULL	0x01
++#define FTS_ERR_EVENT_ESD		0x02
++#define FTS_INFO_READY_STATUS		0x00
++
++/* full byte-0 values */
++#define FTS_EVENT_STATUS_REPORT		0x43	/* echo carrier */
++#define FTS_EVENT_ERROR_REPORT		0xF3
++
++/* coordinate actions, byte0 bits 6-7 */
++#define FTS_ACTION_PRESS		1
++#define FTS_ACTION_MOVE			2
++#define FTS_ACTION_RELEASE		3
++
++/* touch types accepted as finger contacts */
++#define FTS_TTYPE_NORMAL		0
++#define FTS_TTYPE_GLOVE			3
++#define FTS_TTYPE_PALM			5
++#define FTS_TTYPE_WET			6
++
++struct fts1ba90a {
++	struct i2c_client *client;
++	struct input_dev *input;
++	struct touchscreen_properties prop;
++	struct regulator *vdd;		/* IO rail, stock tsp_io_ldo (1.848 V) */
++	struct regulator *avdd;		/* analog rail, stock tsp_avdd_ldo (3.3 V) */
++	struct mutex io_lock;		/* serialises i2c transactions */
++	u16 max_x;
++	u16 max_y;
++};
++
++static int fts1ba90a_write(struct fts1ba90a *ts, const u8 *buf, int len)
++{
++	struct i2c_msg msg = {
++		.addr = ts->client->addr,
++		.len = len,
++		.buf = (u8 *)buf,
++	};
++	int retry = FTS_I2C_RETRY_CNT;
++	int ret;
++
++	mutex_lock(&ts->io_lock);
++	do {
++		ret = i2c_transfer(ts->client->adapter, &msg, 1);
++		if (ret == 1)
++			break;
++		usleep_range(10000, 11000);
++	} while (--retry > 0);
++	mutex_unlock(&ts->io_lock);
++
++	if (ret != 1) {
++		dev_err(&ts->client->dev, "write [%02x..] failed: %d\n",
++			buf[0], ret);
++		return ret < 0 ? ret : -EIO;
++	}
++	return 0;
++}
++
++static int fts1ba90a_read(struct fts1ba90a *ts, const u8 *cmd, int cmd_len,
++			  u8 *buf, int len)
++{
++	struct i2c_msg msgs[2] = {
++		{
++			.addr = ts->client->addr,
++			.len = cmd_len,
++			.buf = (u8 *)cmd,
++		}, {
++			.addr = ts->client->addr,
++			.flags = I2C_M_RD,
++			.len = len,
++			.buf = buf,
++		},
++	};
++	int retry = FTS_I2C_RETRY_CNT;
++	int ret;
++
++	mutex_lock(&ts->io_lock);
++	do {
++		ret = i2c_transfer(ts->client->adapter, msgs, 2);
++		if (ret == 2)
++			break;
++		usleep_range(10000, 11000);
++	} while (--retry > 0);
++	mutex_unlock(&ts->io_lock);
++
++	if (ret != 2) {
++		dev_err(&ts->client->dev, "read [%02x..] failed: %d\n",
++			cmd[0], ret);
++		return ret < 0 ? ret : -EIO;
++	}
++	return 0;
++}
++
++/*
++ * Poll the one-event FIFO until the firmware posts its "ready" status
++ * event (stype INFO, id READY). The downstream driver allows 150 poll
++ * iterations at 20 ms; keep the same 3 s ceiling.
++ */
++static int fts1ba90a_wait_for_ready(struct fts1ba90a *ts)
++{
++	u8 cmd = FTS_READ_ONE_EVENT;
++	u8 data[FTS_EVENT_SIZE];
++	int err_cnt = 0;
++	int retry = 0;
++	int ret;
++
++	for (;;) {
++		ret = fts1ba90a_read(ts, &cmd, 1, data, FTS_EVENT_SIZE);
++		if (ret < 0)
++			return ret;
++
++		if (((data[0] >> 2) & 0xf) == FTS_EVENT_STATUSTYPE_INFO &&
++		    data[1] == FTS_INFO_READY_STATUS)
++			return 0;
++
++		if (data[0] == FTS_EVENT_ERROR_REPORT) {
++			/*
++			 * 0x20-0x21 / 0xA0-0xA8 flag config/cx corruption,
++			 * 0x24 etc. broken OSC trim. Without the factory
++			 * tooling there is no recovery path here, so just
++			 * name the failure.
++			 */
++			dev_err(&ts->client->dev,
++				"boot error event: %*ph\n", 8, data);
++			if (err_cnt++ > 32)
++				return -EIO;
++			continue;
++		}
++
++		if (retry++ > FTS_RETRY_COUNT * 15) {
++			dev_err(&ts->client->dev,
++				"timed out waiting for ready: %*ph\n", 8, data);
++			return -ETIMEDOUT;
++		}
++		msleep(FTS_ECHO_POLL_MS);
++	}
++}
++
++/*
++ * Write a command and wait for the firmware to echo it back as a vendor
++ * event (0x43 0x01 <cmd bytes>). Commands with side effects (calibration,
++ * scan-mode change) complete asynchronously and signal via this echo.
++ */
++static int fts1ba90a_write_wait_echo(struct fts1ba90a *ts, const u8 *cmd,
++				     int cmd_len, int delay_ms,
++				     int echo_timeout_ms)
++{
++	u8 read_cmd = FTS_READ_ONE_EVENT;
++	u8 data[FTS_EVENT_SIZE];
++	int cmp = min(cmd_len, 4);
++	int retry = 0;
++	int ret;
++
++	ret = fts1ba90a_write(ts, cmd, cmd_len);
++	if (ret < 0)
++		return ret;
++
++	if (delay_ms)
++		msleep(delay_ms);
++
++	for (;;) {
++		ret = fts1ba90a_read(ts, &read_cmd, 1, data, FTS_EVENT_SIZE);
++		if (ret < 0)
++			return ret;
++
++		if (data[0] == FTS_EVENT_STATUS_REPORT && data[1] == 0x01 &&
++		    !memcmp(&data[2], cmd, cmp))
++			return 0;
++
++		if (retry++ > echo_timeout_ms / FTS_ECHO_POLL_MS) {
++			/*
++			 * Tab S6-era firmware (fw 0x0037) does not emit the
++			 * echo event this check expects; the chip ID read has
++			 * already proven the part alive, so treat a missing
++			 * echo as informational and carry on.
++			 */
++			dev_warn(&ts->client->dev,
++				 "no echo for cmd %02x (ignored): %*ph\n",
++				 cmd[0], 8, data);
++			return 0;
++		}
++		msleep(FTS_ECHO_POLL_MS);
++	}
++}
++
++static int fts1ba90a_system_reset(struct fts1ba90a *ts)
++{
++	static const u8 reset_cmd[6] = { 0xFA, 0x20, 0x00, 0x00, 0x24, 0x81 };
++	static const u8 crc_cmd[5] = { 0xFA, 0x20, 0x00, 0x00, 0x78 };
++	u8 crc = 0;
++	int ret;
++
++	ret = fts1ba90a_write(ts, reset_cmd, sizeof(reset_cmd));
++	if (ret < 0)
++		return ret;
++
++	msleep(10);
++
++	/* firmware CRC status; non-fatal, but worth a line if it is bad */
++	ret = fts1ba90a_read(ts, crc_cmd, sizeof(crc_cmd), &crc, 1);
++	if (ret == 0 && (crc & 0x03))
++		dev_warn(&ts->client->dev,
++			 "firmware CRC error reported: %02x\n", crc);
++
++	return fts1ba90a_wait_for_ready(ts);
++}
++
++static int fts1ba90a_read_ids(struct fts1ba90a *ts)
++{
++	u8 cmd = FTS_READ_DEVICE_ID;
++	u8 id[5] = { 0 };
++	u8 ver[9] = { 0 };
++	u8 panel[11] = { 0 };
++	int ret;
++
++	ret = fts1ba90a_read(ts, &cmd, 1, id, sizeof(id));
++	if (ret < 0)
++		return ret;
++
++	if (id[2] != FTS_ID0 && id[3] != FTS_ID1) {
++		dev_err(&ts->client->dev, "unexpected chip id: %*ph\n", 5, id);
++		return -ENODEV;
++	}
++
++	cmd = FTS_READ_FW_VERSION;
++	ret = fts1ba90a_read(ts, &cmd, 1, ver, sizeof(ver));
++	if (ret < 0)
++		return ret;
++
++	cmd = FTS_READ_PANEL_INFO;
++	ret = fts1ba90a_read(ts, &cmd, 1, panel, sizeof(panel));
++	if (ret < 0)
++		return ret;
++
++	ts->max_x = (panel[0] << 8) | panel[1];
++	ts->max_y = (panel[2] << 8) | panel[3];
++
++	dev_info(&ts->client->dev,
++		 "%c%c id %02x%02x fw 0x%04x cfg 0x%04x main 0x%04x, %ux%u, tx/rx %u/%u\n",
++		 id[0], id[1], id[2], id[3],
++		 (ver[0] << 8) | ver[1], (ver[2] << 8) | ver[3],
++		 ver[4] | (ver[5] << 8),
++		 ts->max_x + 1, ts->max_y + 1, panel[8], panel[9]);
++
++	return 0;
++}
++
++/*
++ * Post-reset configuration: enable the default touch types, clear the
++ * event FIFO and start mutual/self scanning (0xA0). Calibration (0x13)
++ * is only run on probe, mirroring downstream fts_init vs fts_reinit.
++ */
++static int fts1ba90a_configure(struct fts1ba90a *ts, bool calibrate)
++{
++	static const u8 touch_fn[3] = { FTS_CMD_SET_TOUCH_FUNCTION,
++					FTS_TOUCHTYPE_DEFAULT_ENABLE, 0x00 };
++	static const u8 cal_cmd[1] = { FTS_CMD_FORCE_CALIBRATION };
++	static const u8 clear_cmd[1] = { FTS_CMD_CLEAR_ALL_EVENT };
++	static const u8 scan_cmd[3] = { 0xA0, 0x00, 0x01 }; /* MS/SS scan */
++	int ret;
++
++	ret = fts1ba90a_write(ts, touch_fn, sizeof(touch_fn));
++	if (ret < 0)
++		return ret;
++
++	msleep(10);
++
++	if (calibrate) {
++		ret = fts1ba90a_write_wait_echo(ts, cal_cmd, sizeof(cal_cmd), 0,
++						FTS_ECHO_TIMEOUT_CAL_MS);
++		if (ret < 0)
++			dev_warn(&ts->client->dev, "calibration not confirmed\n");
++	}
++
++	ret = fts1ba90a_write_wait_echo(ts, clear_cmd, sizeof(clear_cmd), 0,
++					FTS_ECHO_TIMEOUT_MS);
++	if (ret < 0)
++		return ret;
++
++	return fts1ba90a_write_wait_echo(ts, scan_cmd, sizeof(scan_cmd), 0,
++					 FTS_ECHO_TIMEOUT_MS);
++}
++
++static int fts1ba90a_power_on(struct fts1ba90a *ts)
++{
++	int ret;
++
++	ret = regulator_enable(ts->vdd);
++	if (ret)
++		return ret;
++	usleep_range(1000, 1500);
++	ret = regulator_enable(ts->avdd);
++	if (ret) {
++		regulator_disable(ts->vdd);
++		return ret;
++	}
++	msleep(10);
++	return 0;
++}
++
++static void fts1ba90a_power_off(struct fts1ba90a *ts)
++{
++	regulator_disable(ts->avdd);
++	usleep_range(4000, 5000);
++	regulator_disable(ts->vdd);
++}
++
++static void fts1ba90a_release_all(struct fts1ba90a *ts)
++{
++	int i;
++
++	for (i = 0; i < FTS_FINGER_MAX; i++) {
++		input_mt_slot(ts->input, i);
++		input_mt_report_slot_inactive(ts->input);
++	}
++	input_mt_sync_frame(ts->input);
++	input_sync(ts->input);
++}
++
++static void fts1ba90a_handle_coordinate(struct fts1ba90a *ts, const u8 *ev)
++{
++	u8 tid = (ev[0] >> 2) & 0xf;
++	u8 action = ev[0] >> 6;
++	u8 ttype = ((ev[6] >> 6) << 2) | (ev[7] >> 6);
++	u16 x = (ev[1] << 4) | (ev[3] >> 4);
++	u16 y = (ev[2] << 4) | (ev[3] & 0xf);
++
++	if (tid >= FTS_FINGER_MAX)
++		return;
++
++	/* hover/proximity/stylus and friends are not reported */
++	if (ttype != FTS_TTYPE_NORMAL && ttype != FTS_TTYPE_PALM &&
++	    ttype != FTS_TTYPE_WET && ttype != FTS_TTYPE_GLOVE)
++		return;
++
++	input_mt_slot(ts->input, tid);
++
++	switch (action) {
++	case FTS_ACTION_PRESS:
++	case FTS_ACTION_MOVE:
++		input_mt_report_slot_state(ts->input, MT_TOOL_FINGER, true);
++		touchscreen_report_pos(ts->input, &ts->prop, x, y, true);
++		input_report_abs(ts->input, ABS_MT_TOUCH_MAJOR, ev[4]);
++		input_report_abs(ts->input, ABS_MT_TOUCH_MINOR, ev[5]);
++		break;
++	case FTS_ACTION_RELEASE:
++		input_mt_report_slot_inactive(ts->input);
++		break;
++	}
++}
++
++static void fts1ba90a_handle_status(struct fts1ba90a *ts, const u8 *ev)
++{
++	u8 stype = (ev[0] >> 2) & 0xf;
++
++	if (stype != FTS_EVENT_STATUSTYPE_ERROR)
++		return;
++
++	if (ev[1] == FTS_ERR_EVENT_QUEUE_FULL) {
++		dev_err(&ts->client->dev, "event queue full, releasing\n");
++		fts1ba90a_release_all(ts);
++	} else if (ev[1] == FTS_ERR_EVENT_ESD) {
++		/*
++		 * Downstream schedules a full reset here. Log it first; if
++		 * it ever fires in practice, wire up a reset worker.
++		 */
++		dev_err(&ts->client->dev, "ESD error reported\n");
++	}
++}
++
++static irqreturn_t fts1ba90a_irq_handler(int irq, void *dev_id)
++{
++	struct fts1ba90a *ts = dev_id;
++	u8 data[FTS_FIFO_MAX * FTS_EVENT_SIZE];
++	u8 cmd = FTS_READ_ONE_EVENT;
++	int left, i;
++
++	if (fts1ba90a_read(ts, &cmd, 1, data, FTS_EVENT_SIZE) < 0)
++		return IRQ_HANDLED;
++
++	left = data[7] & 0x3f;
++	if (left >= FTS_FIFO_MAX)
++		left = FTS_FIFO_MAX - 1;
++
++	if (left > 0) {
++		cmd = FTS_READ_ALL_EVENT;
++		if (fts1ba90a_read(ts, &cmd, 1, &data[FTS_EVENT_SIZE],
++				   left * FTS_EVENT_SIZE) < 0)
++			left = 0;
++	}
++
++	for (i = 0; i <= left; i++) {
++		const u8 *ev = &data[i * FTS_EVENT_SIZE];
++
++		switch (ev[0] & 0x3) {
++		case FTS_COORDINATE_EVENT:
++			fts1ba90a_handle_coordinate(ts, ev);
++			break;
++		case FTS_STATUS_EVENT:
++			fts1ba90a_handle_status(ts, ev);
++			break;
++		default:
++			dev_dbg(&ts->client->dev, "event: %*ph\n", 8, ev);
++			break;
++		}
++	}
++
++	input_mt_sync_frame(ts->input);
++	input_sync(ts->input);
++
++	return IRQ_HANDLED;
++}
++
++static int fts1ba90a_probe(struct i2c_client *client)
++{
++	struct fts1ba90a *ts;
++	int ret;
++
++	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C))
++		return -ENXIO;
++
++	ts = devm_kzalloc(&client->dev, sizeof(*ts), GFP_KERNEL);
++	if (!ts)
++		return -ENOMEM;
++
++	ts->client = client;
++	mutex_init(&ts->io_lock);
++	i2c_set_clientdata(client, ts);
++
++	ts->vdd = devm_regulator_get(&client->dev, "vdd");
++	if (IS_ERR(ts->vdd))
++		return dev_err_probe(&client->dev, PTR_ERR(ts->vdd),
++				     "failed to get vdd\n");
++
++	ts->avdd = devm_regulator_get(&client->dev, "avdd");
++	if (IS_ERR(ts->avdd))
++		return dev_err_probe(&client->dev, PTR_ERR(ts->avdd),
++				     "failed to get avdd\n");
++
++	ret = fts1ba90a_power_on(ts);
++	if (ret)
++		return dev_err_probe(&client->dev, ret, "failed to power on\n");
++
++	ret = fts1ba90a_system_reset(ts);
++	if (ret < 0)
++		goto err_power_off;
++
++	ret = fts1ba90a_read_ids(ts);
++	if (ret < 0)
++		goto err_power_off;
++
++	ret = fts1ba90a_configure(ts, true);
++	if (ret < 0)
++		goto err_power_off;
++
++	ts->input = devm_input_allocate_device(&client->dev);
++	if (!ts->input) {
++		ret = -ENOMEM;
++		goto err_power_off;
++	}
++
++	ts->input->name = "STMicroelectronics FTS1BA90A";
++	ts->input->phys = "input/ts";
++	ts->input->id.bustype = BUS_I2C;
++
++	input_set_abs_params(ts->input, ABS_MT_POSITION_X, 0, ts->max_x, 0, 0);
++	input_set_abs_params(ts->input, ABS_MT_POSITION_Y, 0, ts->max_y, 0, 0);
++	input_set_abs_params(ts->input, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
++	input_set_abs_params(ts->input, ABS_MT_TOUCH_MINOR, 0, 255, 0, 0);
++	touchscreen_parse_properties(ts->input, true, &ts->prop);
++
++	ret = input_mt_init_slots(ts->input, FTS_FINGER_MAX, INPUT_MT_DIRECT);
++	if (ret)
++		goto err_power_off;
++
++	ret = input_register_device(ts->input);
++	if (ret)
++		goto err_power_off;
++
++	ret = devm_request_threaded_irq(&client->dev, client->irq, NULL,
++					fts1ba90a_irq_handler, IRQF_ONESHOT,
++					"fts1ba90a", ts);
++	if (ret) {
++		dev_err_probe(&client->dev, ret, "failed to request irq %d\n",
++			      client->irq);
++		goto err_power_off;
++	}
++
++	return 0;
++
++err_power_off:
++	fts1ba90a_power_off(ts);
++	return ret;
++}
++
++static void fts1ba90a_remove(struct i2c_client *client)
++{
++	struct fts1ba90a *ts = i2c_get_clientdata(client);
++
++	disable_irq(client->irq);
++	fts1ba90a_power_off(ts);
++}
++
++static int fts1ba90a_suspend(struct device *dev)
++{
++	struct fts1ba90a *ts = dev_get_drvdata(dev);
++	static const u8 sense_off[1] = { FTS_CMD_SENSE_OFF };
++
++	disable_irq(ts->client->irq);
++	fts1ba90a_write(ts, sense_off, sizeof(sense_off));
++	fts1ba90a_release_all(ts);
++	fts1ba90a_power_off(ts);
++
++	return 0;
++}
++
++static int fts1ba90a_resume(struct device *dev)
++{
++	struct fts1ba90a *ts = dev_get_drvdata(dev);
++	int ret;
++
++	ret = fts1ba90a_power_on(ts);
++	if (ret)
++		return ret;
++
++	/*
++	 * Deliberately no bare wait_for_ready() here. probe() does not do
++	 * one either: the controller does not post a ready event merely
++	 * because the rails came back, it posts one in response to the
++	 * reset below. Waiting first only burned FTS_RETRY_COUNT * 15 *
++	 * 20ms of resume time on an -ETIMEDOUT that was then ignored.
++	 */
++	ret = fts1ba90a_system_reset(ts);
++	if (ret == 0)
++		ret = fts1ba90a_configure(ts, false);
++	if (ret < 0)
++		dev_err(dev, "resume: reconfigure failed: %d\n", ret);
++
++	enable_irq(ts->client->irq);
++
++	return 0;
++}
++
++static DEFINE_SIMPLE_DEV_PM_OPS(fts1ba90a_pm_ops,
++				fts1ba90a_suspend, fts1ba90a_resume);
++
++static const struct of_device_id fts1ba90a_of_match[] = {
++	{ .compatible = "st,fts1ba90a" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, fts1ba90a_of_match);
++
++static const struct i2c_device_id fts1ba90a_id[] = {
++	{ "fts1ba90a" },
++	{ }
++};
++MODULE_DEVICE_TABLE(i2c, fts1ba90a_id);
++
++static struct i2c_driver fts1ba90a_driver = {
++	.driver = {
++		.name = "fts1ba90a",
++		.of_match_table = fts1ba90a_of_match,
++		.pm = pm_sleep_ptr(&fts1ba90a_pm_ops),
++		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
++	},
++	.probe = fts1ba90a_probe,
++	.remove = fts1ba90a_remove,
++	.id_table = fts1ba90a_id,
++};
++module_i2c_driver(fts1ba90a_driver);
++
++MODULE_DESCRIPTION("STMicroelectronics FTS1BA90A touchscreen driver");
++MODULE_LICENSE("GPL");
+--- /dev/null
++++ b/drivers/power/supply/sm5705_fuelgauge.c
+@@ -0,0 +1,353 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * Silicon Mitus SM5705 fuel gauge
++ *
++ * Samsung fit an SM5705 - a combined charger, fuel gauge and MUIC - on several
++ * Qualcomm devices, in preference to using the Qualcomm PMIC for the battery.
++ * On the Galaxy Tab S6 (SM-T860) the gauge sits at 0x71 on QUP se11 while the
++ * charger (0x49) and MUIC (0x25) share se4. That matters on this device
++ * because pm8150b, which would otherwise carry the charger and gauge, is not
++ * reachable at all: the SPMI arbiter denies the applications processor every
++ * register in that slave ID.
++ *
++ * There is no public datasheet. The register map here was established by
++ * reading the live part against a known reference - a separately calibrated
++ * ADC reading of the battery rail - and confirming that each value tracked
++ * reality over time:
++ *
++ *   0x05  SOC          high byte whole percent, low byte 1/256ths
++ *   0x06  OCV          raw / 2048 volts
++ *   0x07  VBAT         raw / 2048 volts
++ *   0x08  CURRENT      raw / 2048 amps, signed; positive while charging
++ *
++ * Voltage agreed with the reference to within 30 mV across every sample, SOC
++ * climbed steadily while charging, and current read a plausible ~1.1 A. Only
++ * registers that were confirmed this way are used; the rest of the map is left
++ * alone rather than guessed at.
++ */
++
++#include <linux/bitfield.h>
++#include <linux/bits.h>
++#include <linux/devm-helpers.h>
++#include <linux/i2c.h>
++#include <linux/module.h>
++#include <linux/mod_devicetable.h>
++#include <linux/power_supply.h>
++#include <linux/slab.h>
++#include <linux/workqueue.h>
++
++#define SM5705_FG_DEVICE_ID		0x00
++#define SM5705_FG_SOC			0x05
++#define SM5705_FG_OCV			0x06
++#define SM5705_FG_VBAT			0x07
++#define SM5705_FG_CURRENT		0x08
++
++/* Volts and amps are fixed point with 11 fractional bits. */
++#define SM5705_FG_FRACTIONAL_BITS	11
++
++/*
++ * Below this the current reading is treated as neither charging nor
++ * discharging. The part reports a small non-zero current when idle, and
++ * without a deadband the status flickers between charging and discharging.
++ */
++#define SM5705_FG_CURRENT_NOISE_UA	50000
++
++/*
++ * How often to look for a change in charging state.
++ *
++ * The gauge interrupt line is described in the vendor device tree but is not
++ * wired up here, and nothing else on this board reports cable events, so
++ * without polling the desktop only notices a plug or unplug at its own leisure
++ * - upower re-reads on a timer measured in tens of seconds. Five seconds is
++ * frequent enough that pulling the charger updates while you are still looking
++ * at the screen, and two I2C word reads on a 400 kHz bus every five seconds
++ * costs nothing.
++ */
++#define SM5705_FG_POLL_INTERVAL		(5 * HZ)
++
++struct sm5705_fg {
++	struct i2c_client *client;
++	struct power_supply *psy;
++	struct power_supply_battery_info *info;
++	struct delayed_work poll_work;
++	int last_status;
++};
++
++static int sm5705_fg_read(struct sm5705_fg *fg, u8 reg)
++{
++	int ret = i2c_smbus_read_word_data(fg->client, reg);
++
++	if (ret < 0)
++		dev_err(&fg->client->dev, "read of reg 0x%02x failed: %d\n",
++			reg, ret);
++
++	return ret;
++}
++
++/* raw / 2048, scaled to micro-units, without losing the fraction. */
++static int sm5705_fg_to_micro(int raw)
++{
++	return ((long long)raw * 1000000) >> SM5705_FG_FRACTIONAL_BITS;
++}
++
++/*
++ * Current is SIGN-MAGNITUDE, not two's complement.
++ *
++ * Bit 15 is a sign flag on its own, bits 12:11 are whole amps and bits 10:0
++ * the fraction in 1/2048ths. Reading the register as a signed 16-bit value
++ * gets charging right purely by accident - bit 15 is clear then, and the
++ * layout happens to coincide with a plain divide by 2048 - while discharging
++ * comes out catastrophically wrong: -14.85 A for what is really about -1.15 A.
++ * Worth knowing, because the wrong answer looks plausible enough in the
++ * charging direction to pass a first test.
++ */
++#define SM5705_FG_CURRENT_SIGN		BIT(15)
++#define SM5705_FG_CURRENT_AMPS		GENMASK(12, 11)
++#define SM5705_FG_CURRENT_FRAC		GENMASK(10, 0)
++
++static int sm5705_fg_decode_current_ua(int raw)
++{
++	int ua;
++
++	ua = FIELD_GET(SM5705_FG_CURRENT_AMPS, raw) * 1000000;
++	ua += ((raw & SM5705_FG_CURRENT_FRAC) * 1000000) >>
++	      SM5705_FG_FRACTIONAL_BITS;
++
++	return (raw & SM5705_FG_CURRENT_SIGN) ? -ua : ua;
++}
++
++static int sm5705_fg_get_current_ua(struct sm5705_fg *fg, int *out)
++{
++	int raw = sm5705_fg_read(fg, SM5705_FG_CURRENT);
++
++	if (raw < 0)
++		return raw;
++
++	*out = sm5705_fg_decode_current_ua(raw);
++
++	return 0;
++}
++
++static int sm5705_fg_get_status(struct sm5705_fg *fg, int *out)
++{
++	int ret, cur, soc;
++
++	ret = sm5705_fg_get_current_ua(fg, &cur);
++	if (ret)
++		return ret;
++
++	if (cur > SM5705_FG_CURRENT_NOISE_UA) {
++		*out = POWER_SUPPLY_STATUS_CHARGING;
++		return 0;
++	}
++
++	if (cur < -SM5705_FG_CURRENT_NOISE_UA) {
++		*out = POWER_SUPPLY_STATUS_DISCHARGING;
++		return 0;
++	}
++
++	/*
++	 * Sitting still. Full if the gauge says so, otherwise there is external
++	 * power holding it steady without charging.
++	 */
++	soc = sm5705_fg_read(fg, SM5705_FG_SOC);
++	if (soc < 0)
++		return soc;
++
++	*out = (soc >> 8) >= 99 ? POWER_SUPPLY_STATUS_FULL :
++				  POWER_SUPPLY_STATUS_NOT_CHARGING;
++
++	return 0;
++}
++
++/*
++ * Notice a plug or unplug and tell the power-supply core about it.
++ *
++ * Deliberately fires power_supply_changed() ONLY on a transition. Calling it
++ * every poll would wake the whole desktop stack twice a second for nothing;
++ * calling it never is what made the tablet sit there claiming to be charging
++ * long after the cable came out.
++ */
++static void sm5705_fg_poll(struct work_struct *work)
++{
++	struct sm5705_fg *fg = container_of(work, struct sm5705_fg,
++					    poll_work.work);
++	int status;
++
++	if (!sm5705_fg_get_status(fg, &status) && status != fg->last_status) {
++		dev_dbg(&fg->client->dev, "status %d -> %d\n",
++			fg->last_status, status);
++		fg->last_status = status;
++		power_supply_changed(fg->psy);
++	}
++
++	schedule_delayed_work(&fg->poll_work, SM5705_FG_POLL_INTERVAL);
++}
++
++static int sm5705_fg_get_property(struct power_supply *psy,
++				  enum power_supply_property psp,
++				  union power_supply_propval *val)
++{
++	struct sm5705_fg *fg = power_supply_get_drvdata(psy);
++	int ret, raw;
++
++	switch (psp) {
++	case POWER_SUPPLY_PROP_STATUS:
++		return sm5705_fg_get_status(fg, &val->intval);
++
++	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
++		raw = sm5705_fg_read(fg, SM5705_FG_VBAT);
++		if (raw < 0)
++			return raw;
++		val->intval = sm5705_fg_to_micro(raw);
++		return 0;
++
++	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
++		raw = sm5705_fg_read(fg, SM5705_FG_OCV);
++		if (raw < 0)
++			return raw;
++		val->intval = sm5705_fg_to_micro(raw);
++		return 0;
++
++	case POWER_SUPPLY_PROP_CURRENT_NOW:
++		return sm5705_fg_get_current_ua(fg, &val->intval);
++
++	case POWER_SUPPLY_PROP_CAPACITY:
++		raw = sm5705_fg_read(fg, SM5705_FG_SOC);
++		if (raw < 0)
++			return raw;
++		/* High byte is whole percent; clamp, the part can read over. */
++		val->intval = min(raw >> 8, 100);
++		return 0;
++
++	case POWER_SUPPLY_PROP_PRESENT:
++		ret = sm5705_fg_read(fg, SM5705_FG_DEVICE_ID);
++		val->intval = ret >= 0;
++		return 0;
++
++	case POWER_SUPPLY_PROP_TECHNOLOGY:
++		val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
++		return 0;
++
++	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
++		if (!fg->info || fg->info->charge_full_design_uah < 0)
++			return -ENODATA;
++		val->intval = fg->info->charge_full_design_uah;
++		return 0;
++
++	case POWER_SUPPLY_PROP_VOLTAGE_MIN_DESIGN:
++		if (!fg->info || fg->info->voltage_min_design_uv < 0)
++			return -ENODATA;
++		val->intval = fg->info->voltage_min_design_uv;
++		return 0;
++
++	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
++		if (!fg->info || fg->info->voltage_max_design_uv < 0)
++			return -ENODATA;
++		val->intval = fg->info->voltage_max_design_uv;
++		return 0;
++
++	default:
++		return -EINVAL;
++	}
++}
++
++static enum power_supply_property sm5705_fg_props[] = {
++	POWER_SUPPLY_PROP_STATUS,
++	POWER_SUPPLY_PROP_PRESENT,
++	POWER_SUPPLY_PROP_TECHNOLOGY,
++	POWER_SUPPLY_PROP_CAPACITY,
++	POWER_SUPPLY_PROP_VOLTAGE_NOW,
++	POWER_SUPPLY_PROP_VOLTAGE_OCV,
++	POWER_SUPPLY_PROP_CURRENT_NOW,
++	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
++	POWER_SUPPLY_PROP_VOLTAGE_MIN_DESIGN,
++	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
++};
++
++static const struct power_supply_desc sm5705_fg_desc = {
++	.name		= "sm5705-fuelgauge",
++	.type		= POWER_SUPPLY_TYPE_BATTERY,
++	.properties	= sm5705_fg_props,
++	.num_properties	= ARRAY_SIZE(sm5705_fg_props),
++	.get_property	= sm5705_fg_get_property,
++};
++
++static int sm5705_fg_probe(struct i2c_client *client)
++{
++	struct power_supply_config cfg = {};
++	struct device *dev = &client->dev;
++	struct sm5705_fg *fg;
++	int ret;
++
++	if (!i2c_check_functionality(client->adapter,
++				     I2C_FUNC_SMBUS_READ_WORD_DATA))
++		return dev_err_probe(dev, -ENODEV,
++				     "adapter cannot do SMBus word reads\n");
++
++	fg = devm_kzalloc(dev, sizeof(*fg), GFP_KERNEL);
++	if (!fg)
++		return -ENOMEM;
++
++	fg->client = client;
++
++	/* Prove the part is really there before claiming a battery exists. */
++	ret = i2c_smbus_read_word_data(client, SM5705_FG_DEVICE_ID);
++	if (ret < 0)
++		return dev_err_probe(dev, ret, "no response from fuel gauge\n");
++
++	dev_info(dev, "SM5705 fuel gauge, device id 0x%04x\n", ret);
++
++	cfg.drv_data = fg;
++	cfg.fwnode = dev_fwnode(dev);
++
++	fg->psy = devm_power_supply_register(dev, &sm5705_fg_desc, &cfg);
++	if (IS_ERR(fg->psy))
++		return dev_err_probe(dev, PTR_ERR(fg->psy),
++				     "failed to register power supply\n");
++
++	/*
++	 * Optional. Without it the design capacity and voltage limits are
++	 * simply not offered; everything measured still works.
++	 */
++	ret = power_supply_get_battery_info(fg->psy, &fg->info);
++	if (ret)
++		dev_warn(dev, "no battery info: %d\n", ret);
++
++	/* Seed the state so the first poll does not report a false transition. */
++	if (sm5705_fg_get_status(fg, &fg->last_status))
++		fg->last_status = POWER_SUPPLY_STATUS_UNKNOWN;
++
++	ret = devm_delayed_work_autocancel(dev, &fg->poll_work, sm5705_fg_poll);
++	if (ret)
++		return ret;
++
++	schedule_delayed_work(&fg->poll_work, SM5705_FG_POLL_INTERVAL);
++
++	return 0;
++}
++
++static const struct of_device_id sm5705_fg_of_match[] = {
++	{ .compatible = "siliconmitus,sm5705-fuelgauge" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, sm5705_fg_of_match);
++
++static const struct i2c_device_id sm5705_fg_id[] = {
++	{ "sm5705-fuelgauge" },
++	{ }
++};
++MODULE_DEVICE_TABLE(i2c, sm5705_fg_id);
++
++static struct i2c_driver sm5705_fg_driver = {
++	.driver = {
++		.name = "sm5705-fuelgauge",
++		.of_match_table = sm5705_fg_of_match,
++	},
++	.probe = sm5705_fg_probe,
++	.id_table = sm5705_fg_id,
++};
++module_i2c_driver(sm5705_fg_driver);
++
++MODULE_DESCRIPTION("Silicon Mitus SM5705 fuel gauge");
++MODULE_LICENSE("GPL");
+--- /dev/null
++++ b/drivers/gpu/drm/panel/panel-samsung-ana38401.c
+@@ -0,0 +1,475 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Experimental Galaxy Tab S6 ANA38401 / AMSA05RB06 command-mode panel.
++ * Timing and packet sequences come from Samsung's gts6lwifi r06 overlay.
++ * Control commands go to DSI0 only; DSI1 carries the other half of the image.
++ * Requires the MSM deferred-HS-clock patch: LP11 -> reset -> TCON-ready -> HS.
++ */
++
++#include <linux/delay.h>
++#include <linux/gpio/consumer.h>
++#include <linux/iopoll.h>
++#include <linux/ktime.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/regulator/consumer.h>
++#include <linux/workqueue.h>
++#include <video/mipi_display.h>
++
++#include <drm/drm_atomic.h>
++#include <drm/drm_atomic_helper.h>
++#include <drm/drm_bridge.h>
++#include <drm/drm_connector.h>
++#include <drm/drm_encoder.h>
++#include <drm/drm_mipi_dsi.h>
++#include <drm/drm_modes.h>
++#include <drm/drm_vblank.h>
++
++struct ana38401 {
++	struct drm_bridge bridge;
++	struct device *dev;
++	struct work_struct display_on_work;
++	struct drm_crtc_commit *first_commit;
++	bool prepared;
++	bool initialized;
++	bool display_on_requested;
++	ktime_t display_on_deadline;
++	struct mipi_dsi_device *dsi;
++	struct mipi_dsi_device *secondary;
++	struct regulator_bulk_data supplies[3];
++	struct gpio_desc *reset;
++	struct gpio_desc *ready;
++};
++
++struct ana38401_cmd {
++	u8 type;
++	u8 len;
++	u8 data[34];
++};
++
++/* Preserve the vendor packet types, including two-byte long writes. */
++static const struct ana38401_cmd ana38401_init[] = {
++	{ 0x15, 2, { 0xb0, 0x7f } },
++	{ 0x39, 2, { 0xb2, 0x15 } },
++	{ 0x15, 2, { 0xb0, 0xbc } },
++	{ 0x39, 2, { 0xb2, 0x04 } },
++	{ 0x39, 34, { 0x83, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
++		      0x00, 0x80, 0x80, 0x00, 0x80, 0x80, 0x80, 0x80,
++		      0x80, 0x80, 0x80, 0x00, 0x80, 0x80, 0x00, 0x80,
++		      0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x80,
++		      0x80, 0x00 } },
++	{ 0x39, 4, { 0x90, 0x00, 0x00, 0x0e } },
++	{ 0x15, 2, { 0xb0, 0x67 } },
++	{ 0x39, 2, { 0xb2, 0x0f } },
++	{ 0x15, 2, { 0xb0, 0x4d } },
++	{ 0x39, 2, { 0xb2, 0x04 } },
++	{ 0x15, 2, { 0xb0, 0x49 } },
++	{ 0x39, 2, { 0xb2, 0x99 } },
++	{ 0x15, 2, { 0xb0, 0x36 } },
++	{ 0x39, 2, { 0xb2, 0x10 } },
++	{ 0x15, 2, { 0xb0, 0x35 } },
++	{ 0x39, 2, { 0xb2, 0x01 } },
++};
++
++static struct ana38401 *to_ana38401(struct drm_bridge *bridge)
++{
++	return container_of(bridge, struct ana38401, bridge);
++}
++
++static int ana38401_write(struct ana38401 *ctx,
++			 const struct ana38401_cmd *cmd)
++{
++	struct mipi_dsi_msg msg = {
++		.channel = ctx->dsi->channel,
++		.type = cmd->type,
++		.tx_len = cmd->len,
++		.tx_buf = cmd->data,
++	};
++	ssize_t ret;
++
++	/* The generic DCS helper chooses short packets for two-byte payloads. */
++	ret = ctx->dsi->host->ops->transfer(ctx->dsi->host, &msg);
++	/* MSM reports its padded DMA packet length, including the header. */
++	return ret < 0 ? ret : 0;
++}
++
++static int ana38401_prepare(struct ana38401 *ctx)
++{
++	int ret, ready;
++
++	ret = regulator_bulk_enable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
++	if (ret)
++		return ret;
++
++	/* reset is active low in DT: logical 1 asserts the physical low. */
++	gpiod_set_value_cansleep(ctx->reset, 1);
++	msleep(70);
++	gpiod_set_value_cansleep(ctx->reset, 0);
++	ret = read_poll_timeout(gpiod_get_value_cansleep, ready, ready != 0,
++				1000, 500000, false, ctx->ready);
++	if (ret || ready < 0) {
++		ret = ready < 0 ? ready : ret;
++		dev_err(ctx->dev, "TCON-ready failed: %d\n", ret);
++		gpiod_set_value_cansleep(ctx->reset, 1);
++		regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
++		return ret;
++	}
++
++	/* Samsung measures the 220ms minimum at display-on, not before init.
++	 * Start HS and configure gamma/pixels as soon as the TCON is ready.
++	 */
++	ctx->display_on_deadline = ktime_add_ms(ktime_get(), 220);
++	return 0;
++}
++
++static int ana38401_mtp_offset(u8 value)
++{
++	/* Factory offsets use sign/magnitude, not two's complement. */
++	return value & 0x80 ? -(value & 0x7f) : value;
++}
++
++static int ana38401_calibrate_gamma(struct ana38401 *ctx)
++{
++	struct ana38401_cmd gamma = { 0x39, 34, { 0x83 } };
++	u8 mtp[33], params[2] = { 0xd8, 0 };
++	unsigned int offset, count, channel, i;
++	ssize_t ret;
++	int v255;
++
++	/* Match Samsung's gpara reads: D8 at 0x5a, at most ten bytes each.
++	 * ANA38401 requires the requested byte count as the second parameter.
++	 */
++	for (offset = 0; offset < sizeof(mtp); offset += count) {
++		count = min_t(unsigned int, 10, sizeof(mtp) - offset);
++		ret = mipi_dsi_dcs_write(ctx->dsi, 0xb0,
++					(u8[]){ 0x5a + offset }, 1);
++		if (ret < 0)
++			return ret;
++		params[1] = count;
++		ret = mipi_dsi_generic_read(ctx->dsi, params, sizeof(params),
++					   mtp + offset, count);
++		if (ret != count)
++			return ret < 0 ? ret : -EIO;
++	}
++	if (!memchr_inv(mtp, 0xff, sizeof(mtp)))
++		return -ENODATA;
++
++	/* Vendor gamma_cell_determine_max(): calibrated normal 360 cd/m2.
++	 * Each channel contains V11..V203, V255 low, V3, V255 high/V0, VT.
++	 * Lower brightness needs the vendor smart-dimming interpolation too.
++	 */
++	for (channel = 0; channel < 3; channel++) {
++		u8 *dst = gamma.data + 1 + channel * 11;
++		const u8 *src = mtp + channel * 11;
++
++		for (i = 0; i < 7; i++)
++			dst[i] = 128 + ana38401_mtp_offset(src[i]);
++		v255 = 256 + (src[9] ? -src[7] : src[7]);
++		dst[7] = v255 & 0xff;
++		dst[8] = 128 + ana38401_mtp_offset(src[8]);
++		dst[9] = v255 >= 256 ? 0x80 : 0;
++		dst[10] = 0;
++	}
++	dev_info(ctx->dev, "factory MTP: %*ph\n", (int)sizeof(mtp), mtp);
++	ret = ana38401_write(ctx, &gamma);
++	if (ret)
++		return ret;
++	/* Latch the new gamma with the same vendor update command. */
++	ret = ana38401_write(ctx, &(struct ana38401_cmd){ 0x15, 2, { 0xb0, 0x35 } });
++	if (ret)
++		return ret;
++	return ana38401_write(ctx, &(struct ana38401_cmd){ 0x39, 2, { 0xb2, 0x01 } });
++}
++
++static int ana38401_enable(struct ana38401 *ctx)
++{
++	unsigned int i;
++	int ret;
++
++	/* MSM enables continuous HS clock after prepare and before this hook. */
++	for (i = 0; i < ARRAY_SIZE(ana38401_init); i++) {
++		ret = ana38401_write(ctx, &ana38401_init[i]);
++		if (ret) {
++			dev_err(ctx->dev, "initialization command %u failed: %d\n", i, ret);
++			return ret;
++		}
++	}
++
++	ret = ana38401_calibrate_gamma(ctx);
++	if (ret) {
++		dev_err(ctx->dev, "factory gamma calibration failed: %d\n", ret);
++		return ret;
++	}
++
++	return 0;
++}
++
++static int ana38401_disable(struct ana38401 *ctx)
++{
++	int ret = mipi_dsi_dcs_set_display_off(ctx->dsi);
++
++	msleep(100);
++	return ret;
++}
++
++static int ana38401_unprepare(struct ana38401 *ctx)
++{
++	gpiod_set_value_cansleep(ctx->reset, 1);
++	/* Vendor vddlcd supply pre-off delay, after display-off and reset. */
++	usleep_range(5000, 6000);
++	return regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
++}
++
++static const struct drm_display_mode ana38401_mode = {
++	.clock = 299395,
++	.hdisplay = 2560,
++	.hsync_start = 2560 + 220,
++	.hsync_end = 2560 + 220 + 84,
++	.htotal = 2560 + 220 + 84 + 220,
++	.vdisplay = 1600,
++	.vsync_start = 1600 + 10,
++	.vsync_end = 1600 + 10 + 2,
++	.vtotal = 1600 + 10 + 2 + 6,
++	.type = DRM_MODE_TYPE_DRIVER | DRM_MODE_TYPE_PREFERRED,
++};
++
++static int ana38401_get_modes(struct drm_bridge *bridge,
++			      struct drm_connector *connector)
++{
++	struct drm_display_mode *mode;
++
++	mode = drm_mode_duplicate(connector->dev, &ana38401_mode);
++	if (!mode)
++		return -ENOMEM;
++	drm_mode_set_name(mode);
++	drm_mode_probed_add(connector, mode);
++	connector->display_info.width_mm = 227;
++	connector->display_info.height_mm = 142;
++	return 1;
++}
++
++/* Command-mode pixels are kicked off after bridge atomic_enable. Wait for
++ * the first scan to finish on both bonded links before sending display-on.
++ * Waiting in atomic_enable itself would deadlock that first kickoff.
++ */
++static void ana38401_display_on_work(struct work_struct *work)
++{
++	struct ana38401 *ctx = container_of(work, struct ana38401, display_on_work);
++	struct drm_crtc_commit *commit = ctx->first_commit;
++	struct drm_crtc *crtc = commit->crtc;
++	s64 remaining_us;
++	u64 count;
++	int ret;
++
++	if (!wait_for_completion_timeout(&commit->flip_done, msecs_to_jiffies(1000))) {
++		dev_err(ctx->dev, "first frame timed out; keeping display off\n");
++		goto out;
++	}
++
++	/* DPU can signal flip_done at CTL_START, before pixels start at TE.
++	 * The first TE starts pixel DMA; the second closes that scan interval.
++	 * One TE plus host-side DCS DMA arbitration only covers the primary
++	 * link and can expose uninitialized RAM on the other bonded link.
++	 */
++	ret = drm_crtc_vblank_get(crtc);
++	if (ret) {
++		dev_err(ctx->dev, "cannot wait for first scan: %d\n", ret);
++		goto out;
++	}
++	count = drm_crtc_vblank_count(crtc);
++	ret = wait_event_timeout(*drm_crtc_vblank_waitqueue(crtc),
++				drm_crtc_vblank_count(crtc) - count >= 2,
++				msecs_to_jiffies(100));
++	drm_crtc_vblank_put(crtc);
++	if (!ret) {
++		dev_err(ctx->dev, "first scan timed out; keeping display off\n");
++		goto out;
++	}
++
++	remaining_us = ktime_us_delta(ctx->display_on_deadline, ktime_get());
++	if (remaining_us > 0)
++		usleep_range(remaining_us, remaining_us + 1000);
++	if (!READ_ONCE(ctx->display_on_requested))
++		goto out;
++
++	ret = mipi_dsi_dcs_set_display_on(ctx->dsi);
++	if (ret < 0)
++		dev_err(ctx->dev, "display on failed: %d\n", ret);
++	else
++		dev_info(ctx->dev, "display on after first frame\n");
++out:
++	drm_crtc_commit_put(commit);
++	ctx->first_commit = NULL;
++}
++
++static void ana38401_cancel_display_on(void *data)
++{
++	struct ana38401 *ctx = data;
++
++	WRITE_ONCE(ctx->display_on_requested, false);
++	cancel_work_sync(&ctx->display_on_work);
++	/* A queued worker may have been cancelled before it took this reference. */
++	if (ctx->first_commit) {
++		drm_crtc_commit_put(ctx->first_commit);
++		ctx->first_commit = NULL;
++	}
++}
++
++static void ana38401_atomic_pre_enable(struct drm_bridge *bridge,
++				      struct drm_atomic_state *state)
++{
++	struct ana38401 *ctx = to_ana38401(bridge);
++	int ret = ana38401_prepare(ctx);
++
++	ctx->prepared = !ret;
++	if (ret)
++		dev_err(ctx->dev, "prepare failed: %d\n", ret);
++}
++
++static void ana38401_atomic_enable(struct drm_bridge *bridge,
++				  struct drm_atomic_state *state)
++{
++	struct ana38401 *ctx = to_ana38401(bridge);
++	struct drm_crtc *crtc;
++	struct drm_crtc_state *crtc_state;
++	int ret;
++
++	if (!ctx->prepared)
++		return;
++	crtc = drm_atomic_get_new_crtc_for_encoder(state, bridge->encoder);
++	if (!crtc)
++		return;
++	crtc_state = drm_atomic_get_new_crtc_state(state, crtc);
++	if (!crtc_state || !crtc_state->commit) {
++		dev_err(ctx->dev, "missing first-frame commit\n");
++		return;
++	}
++
++	ret = ana38401_enable(ctx);
++	if (ret)
++		return;
++	ctx->initialized = true;
++	WRITE_ONCE(ctx->display_on_requested, true);
++	ctx->first_commit = drm_crtc_commit_get(crtc_state->commit);
++	schedule_work(&ctx->display_on_work);
++}
++
++static void ana38401_atomic_disable(struct drm_bridge *bridge,
++				   struct drm_atomic_state *state)
++{
++	struct ana38401 *ctx = to_ana38401(bridge);
++
++	/* Finish/cancel the deferred DCS write before DSI or rails are disabled. */
++	ana38401_cancel_display_on(ctx);
++	if (ctx->initialized)
++		ana38401_disable(ctx);
++	ctx->initialized = false;
++}
++
++static void ana38401_atomic_post_disable(struct drm_bridge *bridge,
++					struct drm_atomic_state *state)
++{
++	struct ana38401 *ctx = to_ana38401(bridge);
++
++	if (ctx->prepared)
++		ana38401_unprepare(ctx);
++	ctx->prepared = false;
++}
++
++static const struct drm_bridge_funcs ana38401_bridge_funcs = {
++	.atomic_pre_enable = ana38401_atomic_pre_enable,
++	.atomic_enable = ana38401_atomic_enable,
++	.atomic_disable = ana38401_atomic_disable,
++	.atomic_post_disable = ana38401_atomic_post_disable,
++	.get_modes = ana38401_get_modes,
++	.atomic_reset = drm_atomic_helper_bridge_reset,
++	.atomic_duplicate_state = drm_atomic_helper_bridge_duplicate_state,
++	.atomic_destroy_state = drm_atomic_helper_bridge_destroy_state,
++	.atomic_get_input_bus_fmts = drm_atomic_helper_bridge_propagate_bus_fmt,
++};
++
++static void ana38401_put_secondary(void *data)
++{
++	struct mipi_dsi_device *secondary = data;
++
++	put_device(&secondary->dev);
++}
++
++static int ana38401_probe(struct mipi_dsi_device *dsi)
++{
++	struct device *dev = &dsi->dev;
++	struct mipi_dsi_device *secondary;
++	struct device_node *np;
++	struct ana38401 *ctx;
++	int ret;
++
++	dsi->lanes = 4;
++	dsi->format = MIPI_DSI_FMT_RGB888;
++	dsi->mode_flags = 0; /* command mode, HS commands, continuous clock, EOT */
++	if (of_device_is_compatible(dev->of_node,
++				    "samsung,ana38401-amsa05rb06-secondary"))
++		return devm_mipi_dsi_attach(dev, dsi);
++
++	np = of_parse_phandle(dev->of_node, "link2", 0);
++	if (!np)
++		return dev_err_probe(dev, -EINVAL, "missing secondary DSI link\n");
++	secondary = of_find_mipi_dsi_device_by_node(np);
++	of_node_put(np);
++	if (!secondary)
++		return -EPROBE_DEFER;
++	ret = devm_add_action_or_reset(dev, ana38401_put_secondary, secondary);
++	if (ret)
++		return ret;
++
++	ctx = devm_drm_bridge_alloc(dev, struct ana38401, bridge,
++				    &ana38401_bridge_funcs);
++	if (IS_ERR(ctx))
++		return PTR_ERR(ctx);
++	ctx->dsi = dsi;
++	ctx->secondary = secondary;
++	ctx->dev = dev;
++	INIT_WORK(&ctx->display_on_work, ana38401_display_on_work);
++	ctx->bridge.of_node = dev->of_node;
++	ctx->bridge.type = DRM_MODE_CONNECTOR_DSI;
++	ctx->bridge.ops = DRM_BRIDGE_OP_MODES;
++	ctx->bridge.pre_enable_prev_first = true;
++	ctx->supplies[0].supply = "vddio";
++	ctx->supplies[1].supply = "lab";
++	ctx->supplies[2].supply = "ibb";
++	ret = devm_regulator_bulk_get(dev, ARRAY_SIZE(ctx->supplies), ctx->supplies);
++	if (ret)
++		return dev_err_probe(dev, ret, "failed to get supplies\n");
++	ctx->reset = devm_gpiod_get(dev, "reset", GPIOD_OUT_HIGH);
++	if (IS_ERR(ctx->reset))
++		return dev_err_probe(dev, PTR_ERR(ctx->reset), "failed to get reset\n");
++	ctx->ready = devm_gpiod_get(dev, "tcon-rdy", GPIOD_IN);
++	if (IS_ERR(ctx->ready))
++		return dev_err_probe(dev, PTR_ERR(ctx->ready), "failed to get TCON-ready\n");
++	mipi_dsi_set_drvdata(dsi, ctx);
++	ret = devm_drm_bridge_add(dev, &ctx->bridge);
++	if (ret)
++		return ret;
++	ret = devm_mipi_dsi_attach(dev, dsi);
++	if (ret)
++		return dev_err_probe(dev, ret, "DSI attach failed\n");
++	return devm_add_action_or_reset(dev, ana38401_cancel_display_on, ctx);
++}
++
++static const struct of_device_id ana38401_of_match[] = {
++	{ .compatible = "samsung,ana38401-amsa05rb06" },
++	{ .compatible = "samsung,ana38401-amsa05rb06-secondary" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, ana38401_of_match);
++
++static struct mipi_dsi_driver ana38401_driver = {
++	.probe = ana38401_probe,
++	.driver = {
++		.name = "panel-samsung-ana38401",
++		.of_match_table = ana38401_of_match,
++	},
++};
++module_mipi_dsi_driver(ana38401_driver);
++
++MODULE_DESCRIPTION("Experimental Samsung ANA38401 AMSA05RB06 panel");
++MODULE_LICENSE("GPL");
+--- /dev/null
++++ b/arch/arm64/boot/dts/qcom/sm8150-samsung-gts6lwifi.dts
+@@ -0,0 +1,1664 @@
++// SPDX-License-Identifier: BSD-3-Clause
++/*
++ * Copyright (C) 2021, Microsoft Corporation
++ */
++
++/dts-v1/;
++
++#include <dt-bindings/soc/qcom,apr.h>
++#include <dt-bindings/firmware/qcom,scm.h>
++#include <dt-bindings/sound/qcom,q6asm.h>
++#include <dt-bindings/sound/qcom,q6dsp-lpass-ports.h>
++#include <dt-bindings/regulator/qcom,rpmh-regulator.h>
++#include <dt-bindings/gpio/gpio.h>
++#include "sm8150.dtsi"
++#include "pm8150.dtsi"
++#include "pm8150b.dtsi"
++#include "pm8150l.dtsi"
++
++/ {
++	model = "Samsung Galaxy Tab S6 Wi-Fi SM-T860";
++	compatible = "samsung,gts6lwifi", "qcom,sm8150p", "qcom,sm8150";
++	chassis-type = "tablet";
++
++	aliases {
++		serial0 = &uart2;
++		/*
++		 * qcom_geni_serial takes its port index from an alias, trying
++		 * "serial" then "hsuart". With neither present of_alias_get_id
++		 * returns -ENODEV and the probe dies with the shruggingly
++		 * unhelpful "Invalid line -19". Downstream calls this same node
++		 * hsuart0; serial1 is the mainline spelling and the non-console
++		 * driver has its own 3-entry port array, so it does not collide
++		 * with serial0 above.
++		 */
++		serial1 = &uart13;
++	};
++
++	memory@80000000 {
++		device_type = "memory";
++		reg = <0x0 0x80000000 0x1 0x80000000>;
++	};
++
++	reserved-memory {
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++
++		fb_mem: framebuffer@9c400000 {
++			reg = <0x0 0x9c400000 0x0 0x02000000>;
++			no-map;
++		};
++	};
++
++	framebuffer0: framebuffer@9c400000 {
++		compatible = "simple-framebuffer";
++		reg = <0x0 0x9c400000 0x0 (2560 * 1600 * 4)>;
++		width = <2560>;
++		height = <1600>;
++		stride = <(2560 * 4)>;
++		format = "a8r8g8b8";
++	};
++
++	chosen {
++		bootargs = "console=tty0 ignore_loglevel loglevel=8 rootwait";
++	};
++
++	vph_pwr: vph-pwr-regulator {
++		compatible = "regulator-fixed";
++		regulator-name = "vph_pwr";
++		regulator-min-microvolt = <3700000>;
++		regulator-max-microvolt = <3700000>;
++	};
++
++	/*
++	 * Apparently RPMh does not provide support for PM8150 S4 because it
++	 * is always-on; model it as a fixed regulator.
++	 */
++	vreg_s4a_1p8: pm8150-s4 {
++		compatible = "regulator-fixed";
++		regulator-name = "vreg_s4a_1p8";
++
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++
++		regulator-always-on;
++		regulator-boot-on;
++
++		vin-supply = <&vph_pwr>;
++	};
++
++	/*
++	 * pinctrl lives on this node on purpose: the driver core applies a
++	 * platform device's "default" pinctrl state at probe, and nothing else
++	 * in the q6 chain claims the TDM pins.
++	 */
++	sound {
++		compatible = "qcom,sm8150-sndcard";
++		model = "SM-T860";
++
++		pinctrl-names = "default";
++		pinctrl-0 = <&sec_tdm_active>, <&quin_mi2s_active>;
++
++		/*
++		 * The analogue mics need bias, and DAPM will not power a supply
++		 * nothing depends on. Out of the box all four MICBIAS widgets sit at
++		 * "Off, in 0 out 0" - unreferenced - so the inputs are unbiased and
++		 * capture records a flat noise floor that never responds to sound.
++		 * Naming the dependency here is what turns them on.
++		 *
++		 * IN1L on MICBIAS1A and IN1R on MICBIAS1B follows Samsung enabling
++		 * exactly 1A and 1B (with active discharge) and not 1C. Which mic is
++		 * on which bias is an assumption; if only one channel comes alive,
++		 * swap them.
++		 */
++		audio-routing =
++			"IN1LN_1", "MICBIAS1A",
++			"IN1LP_1", "MICBIAS1A",
++			"IN1RN_1", "MICBIAS1B",
++			"IN1RP_1", "MICBIAS1B";
++
++		mm1-dai-link {
++			link-name = "MultiMedia1";
++
++			cpu {
++				sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA1>;
++			};
++		};
++
++		mm2-dai-link {
++			link-name = "MultiMedia2";
++
++			cpu {
++				sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA2>;
++			};
++		};
++
++		mic-dai-link {
++			link-name = "Quinary MI2S Capture";
++
++			cpu {
++				sound-dai = <&q6afedai QUINARY_MI2S_TX>;
++			};
++
++			platform {
++				sound-dai = <&q6routing>;
++			};
++
++			codec {
++				/* index 0 is cs48l32-asp1 */
++				sound-dai = <&cs48l33 0>;
++			};
++		};
++
++		speaker-dai-link {
++			link-name = "Secondary TDM Playback";
++
++			cpu {
++				sound-dai = <&q6afedai SECONDARY_TDM_RX_0>;
++			};
++
++			platform {
++				sound-dai = <&q6routing>;
++			};
++
++			codec {
++				/*
++				 * Order matters: the machine driver hands amp N
++				 * TDM slot N, so this is slot 0..3.
++				 */
++				sound-dai = <&cs35l41_l 0>, <&cs35l41_r 0>,
++					    <&cs35l41_bl 0>, <&cs35l41_br 0>;
++			};
++		};
++	};
++
++	/*
++	 * Rails for the microphone codec. Samsung models the 1.8 V one as an
++	 * always-on fixed supply, and gates DCVDD from tlmm gpio60 with a 10 ms
++	 * settle before the part is talked to.
++	 */
++	vreg_cdc_1p8: regulator-cdc-1p8 {
++		compatible = "regulator-fixed";
++		regulator-name = "CDC_VDD_1P8";
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		regulator-always-on;
++		regulator-boot-on;
++	};
++
++	vreg_cdc_dcvdd: regulator-cdc-dcvdd {
++		compatible = "regulator-fixed";
++		regulator-name = "CDC_DCVDD_1P2";
++		regulator-min-microvolt = <1200000>;
++		regulator-max-microvolt = <1200000>;
++		gpio = <&tlmm 60 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		startup-delay-us = <10000>;
++	};
++
++	/*
++	 * Volume up. The Surface Duo had this on pm8150 gpio6 and it was
++	 * inherited unchanged, so the button emitted nothing at all: no events
++	 * on the gpio-keys evdev node. That looks exactly like a desktop
++	 * problem and is not one. Samsung's overlay puts it on the pm8150**L**
++	 * pinctrl at "gpio12", active low with a pull up.
++	 *
++	 * The cell is 1-based: qcom's spmi-gpio of_xlate subtracts
++	 * PMIC_GPIO_PHYSICAL_OFFSET, so 12 here is the pin named gpio12.
++	 *
++	 * Volume down is not here, it is the PMIC RESIN pin - see &pon_resin.
++	 */
++	gpio-keys {
++		compatible = "gpio-keys";
++
++		pinctrl-names = "default";
++		pinctrl-0 = <&key_vol_up_default>;
++
++		key-vol-up {
++			label = "Volume Up";
++			gpios = <&pm8150l_gpios 12 GPIO_ACTIVE_LOW>;
++			linux,code = <KEY_VOLUMEUP>;
++			debounce-interval = <15>;
++		};
++	};
++};
++
++&apps_rsc {
++	regulators-0 {
++		compatible = "qcom,pm8150-rpmh-regulators";
++		qcom,pmic-id = "a";
++
++		vdd-s1-supply = <&vph_pwr>;
++		vdd-s2-supply = <&vph_pwr>;
++		vdd-s3-supply = <&vph_pwr>;
++		vdd-s4-supply = <&vph_pwr>;
++		vdd-s5-supply = <&vph_pwr>;
++		vdd-s6-supply = <&vph_pwr>;
++		vdd-s7-supply = <&vph_pwr>;
++		vdd-s8-supply = <&vph_pwr>;
++		vdd-s9-supply = <&vph_pwr>;
++		vdd-s10-supply = <&vph_pwr>;
++
++		vdd-l1-l8-l11-supply = <&vreg_s6a_0p9>;
++		vdd-l2-l10-supply = <&vreg_bob>;
++		vdd-l3-l4-l5-l18-supply = <&vreg_s6a_0p9>;
++		vdd-l6-l9-supply = <&vreg_s8c_1p3>;
++		vdd-l7-l12-l14-l15-supply = <&vreg_s5a_2p0>;
++		vdd-l13-l16-l17-supply = <&vreg_bob>;
++
++		vreg_s5a_2p0: smps5 {
++			regulator-min-microvolt = <1904000>;
++			regulator-max-microvolt = <2000000>;
++		};
++
++		vreg_s6a_0p9: smps6 {
++			regulator-min-microvolt = <920000>;
++			regulator-max-microvolt = <1128000>;
++		};
++
++		vdda_wcss_pll:
++		vreg_l1a_0p75: ldo1 {
++			regulator-min-microvolt = <752000>;
++			regulator-max-microvolt = <752000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vdd_pdphy:
++		vdda_usb_hs_3p1:
++		vreg_l2a_3p1: ldo2 {
++			regulator-min-microvolt = <3072000>;
++			regulator-max-microvolt = <3072000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l3a_0p8: ldo3 {
++			regulator-min-microvolt = <480000>;
++			regulator-max-microvolt = <932000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vdd_usb_hs_core:
++		vdda_csi_0_0p9:
++		vdda_csi_1_0p9:
++		vdda_csi_2_0p9:
++		vdda_csi_3_0p9:
++		vdda_dsi_0_0p9:
++		vdda_dsi_1_0p9:
++		vdda_dsi_0_pll_0p9:
++		vdda_dsi_1_pll_0p9:
++		vdda_pcie_1ln_core:
++		vdda_pcie_2ln_core:
++		vdda_pll_hv_cc_ebi01:
++		vdda_pll_hv_cc_ebi23:
++		vdda_qrefs_0p875_5:
++		vdda_sp_sensor:
++		vdda_ufs_2ln_core_1:
++		vdda_ufs_2ln_core_2:
++		vdda_usb_ss_dp_core_1:
++		vdda_usb_ss_dp_core_2:
++		vdda_qlink_lv:
++		vdda_qlink_lv_ck:
++		vreg_l5a_0p875: ldo5 {
++			regulator-min-microvolt = <880000>;
++			regulator-max-microvolt = <880000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l6a_1p2: ldo6 {
++			regulator-min-microvolt = <1200000>;
++			regulator-max-microvolt = <1200000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l7a_1p8: ldo7 {
++			regulator-min-microvolt = <1800000>;
++			regulator-max-microvolt = <1800000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vddpx_10:
++		vreg_l9a_1p2: ldo9 {
++			regulator-min-microvolt = <1200000>;
++			regulator-max-microvolt = <1200000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l10a_2p5: ldo10 {
++			regulator-min-microvolt = <2504000>;
++			regulator-max-microvolt = <2960000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l11a_0p8: ldo11 {
++			regulator-min-microvolt = <800000>;
++			regulator-max-microvolt = <800000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vdd_qfprom:
++		vdd_qfprom_sp:
++		vdda_apc_cs_1p8:
++		vdda_gfx_cs_1p8:
++		vdda_usb_hs_1p8:
++		vdda_qrefs_vref_1p8:
++		vddpx_10_a:
++		vreg_l12a_1p8: ldo12 {
++			regulator-min-microvolt = <1800000>;
++			regulator-max-microvolt = <1800000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l13a_2p7: ldo13 {
++			regulator-min-microvolt = <2704000>;
++			regulator-max-microvolt = <2704000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l14a_1p8: ldo14 {
++			regulator-min-microvolt = <1800000>;
++			regulator-max-microvolt = <1880000>;
++			regulator-always-on;
++			regulator-boot-on;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l15a_1p7: ldo15 {
++			regulator-min-microvolt = <1704000>;
++			regulator-max-microvolt = <1704000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l16a_2p7: ldo16 {
++			regulator-min-microvolt = <2704000>;
++			regulator-max-microvolt = <2960000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l17a_3p0: ldo17 {
++			regulator-min-microvolt = <2856000>;
++			regulator-max-microvolt = <3008000>;
++			regulator-always-on;
++			regulator-boot-on;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++	};
++
++	regulators-1 {
++		compatible = "qcom,pm8150l-rpmh-regulators";
++		qcom,pmic-id = "c";
++
++		vdd-s1-supply = <&vph_pwr>;
++		vdd-s2-supply = <&vph_pwr>;
++		vdd-s3-supply = <&vph_pwr>;
++		vdd-s4-supply = <&vph_pwr>;
++		vdd-s5-supply = <&vph_pwr>;
++		vdd-s6-supply = <&vph_pwr>;
++		vdd-s7-supply = <&vph_pwr>;
++		vdd-s8-supply = <&vph_pwr>;
++
++		vdd-l1-l8-supply = <&vreg_s4a_1p8>;
++		vdd-l2-l3-supply = <&vreg_s8c_1p3>;
++		vdd-l4-l5-l6-supply = <&vreg_bob>;
++		vdd-l7-l11-supply = <&vreg_bob>;
++		vdd-l9-l10-supply = <&vreg_bob>;
++
++		vdd-bob-supply = <&vph_pwr>;
++		vdd-flash-supply = <&vreg_bob>;
++		vdd-rgb-supply = <&vreg_bob>;
++
++		vreg_bob: bob {
++			regulator-min-microvolt = <3008000>;
++			regulator-max-microvolt = <4000000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_AUTO>;
++			regulator-allow-bypass;
++		};
++
++		vreg_s8c_1p3: smps8 {
++			regulator-min-microvolt = <1352000>;
++			regulator-max-microvolt = <1352000>;
++		};
++
++		vreg_l1c_1p8: ldo1 {
++			regulator-min-microvolt = <1800000>;
++			regulator-max-microvolt = <1800000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vdda_wcss_adcdac_1:
++		vdda_wcss_adcdac_22:
++		vreg_l2c_1p3: ldo2 {
++			regulator-min-microvolt = <1304000>;
++			regulator-max-microvolt = <1304000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++			regulator-always-on;
++			regulator-boot-on;
++		};
++
++		vdda_hv_ebi0:
++		vdda_hv_ebi1:
++		vdda_hv_ebi2:
++		vdda_hv_ebi3:
++		vdda_hv_refgen0:
++		vdda_qlink_hv_ck:
++		vreg_l3c_1p2: ldo3 {
++			regulator-min-microvolt = <1200000>;
++			regulator-max-microvolt = <1200000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vddpx_5:
++		vreg_l4c_1p8: ldo4 {
++			regulator-min-microvolt = <1704000>;
++			regulator-max-microvolt = <2928000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vddpx_6:
++		vreg_l5c_1p8: ldo5 {
++			regulator-min-microvolt = <1704000>;
++			regulator-max-microvolt = <2928000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vddpx_2:
++		vreg_l6c_2p9: ldo6 {
++			regulator-min-microvolt = <1800000>;
++			regulator-max-microvolt = <2960000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l7c_3p0: ldo7 {
++			regulator-min-microvolt = <2856000>;
++			regulator-max-microvolt = <3104000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l8c_1p8: ldo8 {
++			regulator-min-microvolt = <1800000>;
++			regulator-max-microvolt = <1800000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l9c_2p9: ldo9 {
++			regulator-min-microvolt = <2704000>;
++			regulator-max-microvolt = <2960000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l10c_3p3: ldo10 {
++			regulator-min-microvolt = <3000000>;
++			regulator-max-microvolt = <3312000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l11c_3p3: ldo11 {
++			regulator-min-microvolt = <3312000>;
++			regulator-max-microvolt = <3312000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++			regulator-always-on;
++			regulator-boot-on;
++		};
++	};
++
++	regulators-2 {
++		compatible = "qcom,pm8009-rpmh-regulators";
++		qcom,pmic-id = "f";
++
++		vdd-s1-supply = <&vph_pwr>;
++		vdd-s2-supply = <&vreg_bob>;
++
++		vdd-l2-supply = <&vreg_s8c_1p3>;
++		vdd-l5-l6-supply = <&vreg_bob>;
++
++		vreg_l2f_1p2: ldo2 {
++			regulator-min-microvolt = <1200000>;
++			regulator-max-microvolt = <1200000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l5f_2p85: ldo5 {
++			regulator-min-microvolt = <2800000>;
++			regulator-max-microvolt = <2800000>;
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++		};
++
++		vreg_l6f_2p85: ldo6 {
++			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
++			regulator-min-microvolt = <2856000>;
++			regulator-max-microvolt = <2856000>;
++		};
++	};
++};
++
++&i2c1 {
++	status = "okay";
++	clock-frequency = <400000>;
++
++	/* top right speaker (Samsung's cirrus,mfd-suffix) */
++	cs35l41_r: speaker-amp@40 {
++		compatible = "cirrus,cs35l41";
++		reg = <0x40>;
++		#sound-dai-cells = <1>;
++		sound-name-prefix = "R";
++
++		interrupt-parent = <&tlmm>;
++		interrupts = <133 IRQ_TYPE_LEVEL_LOW>;
++		reset-gpios = <&tlmm 148 GPIO_ACTIVE_HIGH>;
++
++		/*
++		 * Samsung wires VA and VP to a dummy always-on regulator, so the
++		 * rails are simply not switchable here.
++		 */
++		VA-supply = <&vreg_s4a_1p8>;
++		VP-supply = <&vph_pwr>;
++
++		/*
++		 * 4100 mA is Samsung's own value (0x1004 in the overlay), and the
++		 * driver range-checks it (1600..4500).
++		 *
++		 * The inductor and capacitor are NOT in Samsung's overlay, and the
++		 * driver rejects them as absent rather than falling back to
++		 * anything: "Invalid boost inductor value: -1 nH". So they have to
++		 * be supplied. 1000 nH is the CS35L41 datasheet reference design and
++		 * is what every cs35l41 device in mainline uses (Sony Xperia on
++		 * sm8250, sm8350 and sm8450). The capacitance only selects a
++		 * coefficient range and 0..19 uF all land in range 0, so 15 is the
++		 * same programming as anything else a design like this would use.
++		 * The inductor is the one genuine assumption here.
++		 */
++		cirrus,boost-peak-milliamp = <4100>;
++		cirrus,boost-ind-nanohenry = <1000>;
++		cirrus,boost-cap-microfarad = <15>;
++		cirrus,asp-sdout-hiz = <3>;
++
++		/* Samsung's cirrus,gpio-config2: src-select 4, output enabled. */
++		cirrus,gpio2-src-select = <4>;
++		cirrus,gpio2-output-enable;
++	};
++
++	/* top left speaker (Samsung's cirrus,mfd-suffix) */
++	cs35l41_l: speaker-amp@41 {
++		compatible = "cirrus,cs35l41";
++		reg = <0x41>;
++		#sound-dai-cells = <1>;
++		sound-name-prefix = "L";
++
++		interrupt-parent = <&tlmm>;
++		interrupts = <133 IRQ_TYPE_LEVEL_LOW>;
++		reset-gpios = <&tlmm 148 GPIO_ACTIVE_HIGH>;
++
++		/*
++		 * Samsung wires VA and VP to a dummy always-on regulator, so the
++		 * rails are simply not switchable here.
++		 */
++		VA-supply = <&vreg_s4a_1p8>;
++		VP-supply = <&vph_pwr>;
++
++		/*
++		 * 4100 mA is Samsung's own value (0x1004 in the overlay), and the
++		 * driver range-checks it (1600..4500).
++		 *
++		 * The inductor and capacitor are NOT in Samsung's overlay, and the
++		 * driver rejects them as absent rather than falling back to
++		 * anything: "Invalid boost inductor value: -1 nH". So they have to
++		 * be supplied. 1000 nH is the CS35L41 datasheet reference design and
++		 * is what every cs35l41 device in mainline uses (Sony Xperia on
++		 * sm8250, sm8350 and sm8450). The capacitance only selects a
++		 * coefficient range and 0..19 uF all land in range 0, so 15 is the
++		 * same programming as anything else a design like this would use.
++		 * The inductor is the one genuine assumption here.
++		 */
++		cirrus,boost-peak-milliamp = <4100>;
++		cirrus,boost-ind-nanohenry = <1000>;
++		cirrus,boost-cap-microfarad = <15>;
++		cirrus,asp-sdout-hiz = <3>;
++
++		/* Samsung's cirrus,gpio-config2: src-select 4, output enabled. */
++		cirrus,gpio2-src-select = <4>;
++		cirrus,gpio2-output-enable;
++	};
++
++	/* bottom right speaker (Samsung's cirrus,mfd-suffix) */
++	cs35l41_br: speaker-amp@42 {
++		compatible = "cirrus,cs35l41";
++		reg = <0x42>;
++		#sound-dai-cells = <1>;
++		sound-name-prefix = "BR";
++
++		interrupt-parent = <&tlmm>;
++		interrupts = <133 IRQ_TYPE_LEVEL_LOW>;
++		reset-gpios = <&tlmm 148 GPIO_ACTIVE_HIGH>;
++
++		/*
++		 * Samsung wires VA and VP to a dummy always-on regulator, so the
++		 * rails are simply not switchable here.
++		 */
++		VA-supply = <&vreg_s4a_1p8>;
++		VP-supply = <&vph_pwr>;
++
++		/*
++		 * 4100 mA is Samsung's own value (0x1004 in the overlay), and the
++		 * driver range-checks it (1600..4500).
++		 *
++		 * The inductor and capacitor are NOT in Samsung's overlay, and the
++		 * driver rejects them as absent rather than falling back to
++		 * anything: "Invalid boost inductor value: -1 nH". So they have to
++		 * be supplied. 1000 nH is the CS35L41 datasheet reference design and
++		 * is what every cs35l41 device in mainline uses (Sony Xperia on
++		 * sm8250, sm8350 and sm8450). The capacitance only selects a
++		 * coefficient range and 0..19 uF all land in range 0, so 15 is the
++		 * same programming as anything else a design like this would use.
++		 * The inductor is the one genuine assumption here.
++		 */
++		cirrus,boost-peak-milliamp = <4100>;
++		cirrus,boost-ind-nanohenry = <1000>;
++		cirrus,boost-cap-microfarad = <15>;
++		cirrus,asp-sdout-hiz = <3>;
++
++		/* Samsung's cirrus,gpio-config2: src-select 4, output enabled. */
++		cirrus,gpio2-src-select = <4>;
++		cirrus,gpio2-output-enable;
++	};
++
++	/* bottom left speaker (Samsung's cirrus,mfd-suffix) */
++	cs35l41_bl: speaker-amp@43 {
++		compatible = "cirrus,cs35l41";
++		reg = <0x43>;
++		#sound-dai-cells = <1>;
++		sound-name-prefix = "BL";
++
++		interrupt-parent = <&tlmm>;
++		interrupts = <133 IRQ_TYPE_LEVEL_LOW>;
++		reset-gpios = <&tlmm 148 GPIO_ACTIVE_HIGH>;
++
++		/*
++		 * Samsung wires VA and VP to a dummy always-on regulator, so the
++		 * rails are simply not switchable here.
++		 */
++		VA-supply = <&vreg_s4a_1p8>;
++		VP-supply = <&vph_pwr>;
++
++		/*
++		 * 4100 mA is Samsung's own value (0x1004 in the overlay), and the
++		 * driver range-checks it (1600..4500).
++		 *
++		 * The inductor and capacitor are NOT in Samsung's overlay, and the
++		 * driver rejects them as absent rather than falling back to
++		 * anything: "Invalid boost inductor value: -1 nH". So they have to
++		 * be supplied. 1000 nH is the CS35L41 datasheet reference design and
++		 * is what every cs35l41 device in mainline uses (Sony Xperia on
++		 * sm8250, sm8350 and sm8450). The capacitance only selects a
++		 * coefficient range and 0..19 uF all land in range 0, so 15 is the
++		 * same programming as anything else a design like this would use.
++		 * The inductor is the one genuine assumption here.
++		 */
++		cirrus,boost-peak-milliamp = <4100>;
++		cirrus,boost-ind-nanohenry = <1000>;
++		cirrus,boost-cap-microfarad = <15>;
++		cirrus,asp-sdout-hiz = <3>;
++
++		/* Samsung's cirrus,gpio-config2: src-select 4, output enabled. */
++		cirrus,gpio2-src-select = <4>;
++		cirrus,gpio2-output-enable;
++	};
++
++
++	da7280@4a {
++		compatible = "dlg,da7280";
++		reg = <0x4a>;
++		interrupts-extended = <&tlmm 42 IRQ_TYPE_LEVEL_LOW>;
++		pinctrl-names = "da7280_default";
++		pinctrl-0 = <&da7280_intr_default>;
++
++		dlg,actuator-type = "LRA";
++		dlg,dlg,const-op-mode = <1>;
++		dlg,dlg,periodic-op-mode = <1>;
++		dlg,nom-microvolt = <2000000>;
++		dlg,abs-max-microvolt = <2000000>;
++		dlg,imax-microamp = <129000>;
++		dlg,resonant-freq-hz = <180>;
++		dlg,impd-micro-ohms = <14300000>;
++		dlg,freq-track-enable;
++		dlg,bemf-sens-enable;
++		dlg,mem-array = <
++		  0x06 0x08 0x10 0x11 0x12 0x13 0x14 0x15 0x1c 0x2a
++		  0x33 0x3c 0x42 0x4b 0x4c 0x4e 0x17 0x19 0x27 0x29
++		  0x17 0x19 0x03 0x84 0x5e 0x04 0x08 0x84 0x5d 0x01
++		  0x84 0x5e 0x02 0x00 0xa4 0x5d 0x03 0x84 0x5e 0x06
++		  0x08 0x84 0x5d 0x05 0x84 0x5d 0x06 0x84 0x5e 0x08
++		  0x84 0x5e 0x05 0x8c 0x5e 0x24 0x84 0x5f 0x10 0x84
++		  0x5e 0x05 0x84 0x5e 0x08 0x84 0x5f 0x01 0x8c 0x5e
++		  0x04 0x84 0x5e 0x08 0x84 0x5f 0x11 0x19 0x88 0x00
++		  0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
++		  0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
++		>;
++	};
++
++	/* SMB1381 @ 0x44 */
++	/* MAX34417 @ 0x1c */
++};
++
++&i2c4 {
++	status = "okay";
++	clock-frequency = <400000>;
++
++	/* SMB1355 @ 0x0c */
++	/* SMB1390 @ 0x10 */
++};
++
++&i2c17 {
++	status = "okay";
++	clock-frequency = <400000>;
++
++};
++
++&i2c19 {
++	status = "okay";
++	clock-frequency = <400000>;
++
++	/* MAX34417 @ 0x12 */
++	/* MAX34417 @ 0x1a */
++	/* MAX34417 @ 0x1e */
++};
++
++&pon_pwrkey {
++	status = "okay";
++};
++
++&qupv3_id_0 {
++	status = "okay";
++};
++
++&qupv3_id_1 {
++	status = "okay";
++};
++
++&qupv3_id_2 {
++	status = "okay";
++};
++
++&remoteproc_mpss {
++	status = "okay";
++	firmware-name = "qcom/sm8150/gts6l/modem.mdt";
++};
++
++&pon_resin {
++	status = "okay";
++
++	linux,code = <KEY_VOLUMEDOWN>;
++};
++
++&tlmm {
++	/*
++	 * <126 4> came from the Surface Duo and reserves gpio126..129, which on
++	 * this board are exactly the Secondary TDM pins (sck, ws, din, dout)
++	 * feeding the four speaker amps. Reserving them makes the pinmux refuse
++	 * to hand them out and there is no audio.
++	 */
++	gpio-reserved-ranges = <0 4>;
++
++	/*
++	 * Quinary MI2S carries the microphone path: the codec's ASP1 lands here,
++	 * not on the Secondary TDM bus the speakers use. Samsung's own node calls
++	 * these quin_mi2s but the pinmux function is spkr_i2s. Capture arrives on
++	 * SD1 (tx-lines = 0x2 downstream); SD0 is the unused playback direction.
++	 */
++	quin_mi2s_active: quin-mi2s-active-state {
++		sck-ws-pins {
++			pins = "gpio149", "gpio151";
++			function = "spkr_i2s";
++			drive-strength = <8>;
++			bias-disable;
++		};
++
++		sd1-pins {
++			pins = "gpio152";
++			function = "spkr_i2s";
++			drive-strength = <8>;
++			bias-disable;
++		};
++	};
++
++	cs48l33_irq_default: cs48l33-irq-state {
++		pins = "gpio12";
++		function = "gpio";
++		drive-strength = <2>;
++		bias-pull-up;
++		input-enable;
++	};
++
++	sec_tdm_active: sec-tdm-active-state {
++		sck-ws-pins {
++			pins = "gpio126", "gpio127";
++			function = "sec_mi2s";
++			drive-strength = <12>;
++			bias-disable;
++		};
++
++		din-pins {
++			pins = "gpio128";
++			function = "sec_mi2s";
++			drive-strength = <12>;
++			bias-disable;
++		};
++
++		dout-pins {
++			pins = "gpio129";
++			function = "sec_mi2s";
++			drive-strength = <12>;
++			bias-disable;
++		};
++	};
++
++	mdss_te_default: mdss-te-default-state {
++		pins = "gpio8";
++		function = "mdp_vsync";
++		drive-strength = <2>;
++		bias-pull-down;
++	};
++
++	da7280_intr_default: da7280-intr-default-state {
++		pins = "gpio42";
++		function = "gpio";
++		bias-pull-up;
++	};
++};
++
++&uart2 {
++	status = "okay";
++};
++
++&ufs_mem_hc {
++	status = "okay";
++
++	reset-gpios = <&tlmm 175 GPIO_ACTIVE_LOW>;
++
++	vcc-supply = <&vreg_l10a_2p5>;
++	vcc-max-microamp = <750000>;
++	vccq-supply = <&vreg_l9a_1p2>;
++	vccq-max-microamp = <700000>;
++	vccq2-supply = <&vreg_s4a_1p8>;
++	vccq2-max-microamp = <750000>;
++};
++
++&ufs_mem_phy {
++	status = "okay";
++
++	vdda-phy-supply = <&vdda_ufs_2ln_core_1>;
++	vdda-pll-supply = <&vreg_l3c_1p2>;
++};
++
++&usb_1_hsphy {
++	status = "okay";
++	vdda-pll-supply = <&vdd_usb_hs_core>;
++	vdda33-supply = <&vdda_usb_hs_3p1>;
++	vdda18-supply = <&vdda_usb_hs_1p8>;
++};
++
++&usb_1_qmpphy {
++	status = "okay";
++	vdda-phy-supply = <&vreg_l3c_1p2>;
++	vdda-pll-supply = <&vdda_usb_ss_dp_core_1>;
++};
++
++&usb_1 {
++	status = "okay";
++};
++
++&usb_1_dwc3 {
++	dr_mode = "peripheral";
++};
++
++&wifi {
++	status = "okay";
++
++	/* Samsung truth (downstream icnss node): l1a/l7a/l2c/l11c - same set
++	 * as the sm8150 HDK reference. The old vdda_wcss_* were Duo leftovers. */
++	vdd-0.8-cx-mx-supply = <&vreg_l1a_0p75>;
++	vdd-1.8-xo-supply = <&vreg_l7a_1p8>;
++	vdd-1.3-rfa-supply = <&vreg_l2c_1p3>;
++	vdd-3.3-ch0-supply = <&vreg_l11c_3p3>;
++};
++
++/*
++ * ADSP: ENABLED, and the memory layout below is the entire reason it works.
++ *
++ * qcom_mdt_pas_init() hands TrustZone
++ *
++ *     qcom_scm_pas_mem_setup(pas_id, mem_phys, max_addr - min_addr)
++ *
++ * where the size is the image's own loadable span, computed from the ELF and
++ * completely independent of how big this reservation is. For this device's
++ * adsp.mdt (ADSP.HT.5.0.c1-00046-SM8150-1, from apnhlos) that span is
++ * 0x2700000, 39 MB.
++ *
++ * TZ then enforces two things at once, and the canonical carveout fails both:
++ *
++ *   - the region must be at least the full 39 MB span. 26 MB is refused at any
++ *     address.
++ *   - the region must not overlap anything TZ already owns. 39 MB starting at
++ *     the canonical 0x8be00000 runs into mpss_mem at 0x8d800000 where the modem
++ *     is already live, so that is refused too.
++ *
++ * So 0x8be00000 can never work: too small as declared, and too big to fit.
++ * Both failures surface as the same "-22 setting up firmware", because TZ
++ * answers 0xffcfffba and qcom_scm_remap_error() does not know that code, so it
++ * flattens it (and everything else it does not know) onto -EINVAL. That is why
++ * the error looked identical for every experiment.
++ *
++ * Measured by making the SCM call raw from a test module, all after a
++ * successful pas_init_image:
++ *
++ *     0x8be00000  26 MB  refused      0x98900000  26 MB  refused
++ *     0x8be00000  39 MB  refused      0x98900000  39 MB  ACCEPTED
++ *                                     0x98900000  40 MB  accepted
++ *                                     0x98900000  45 MB  accepted
++ *
++ * Do not "tidy" this back to the canonical address. Note also the ceiling:
++ * usable DRAM ends near 0x9ff90000 with a hole above it, so a 39 MB region at
++ * 0x9f800000 runs off the end of RAM and is refused for that reason instead.
++ *
++ * mpss_mem is 160 MB for exactly the same reason: modem.mdt's span is exactly
++ * 0xa000000. Same rule, different subsystem, found the hard way twice.
++ *
++ * Firmware is this device's own adsp.mdt plus segments from apnhlos, not the
++ * Surface Duo path sm8150.dtsi defaults to.
++ */
++&adsp_mem { reg = <0x0 0x98900000 0x0 0x2700000>; };	/* exactly the 39 MB ELF span */
++
++/*
++ * cdsp is not used, so park its reservation on the old ADSP carveout. That
++ * keeps 0x8be00000 carved out of System RAM, which matters because Samsung's
++ * firmware still believes that region belongs to the ADSP.
++ */
++&cdsp_mem { reg = <0x0 0x8be00000 0x0 0x1a00000>; };
++
++&remoteproc_adsp {
++	status = "okay";
++	firmware-name = "qcom/sm8150/gts6l/adsp.mdt";
++
++	/*
++	 * APR, the audio packet router, rides the GLINK edge the ADSP brings up.
++	 * sm8150.dtsi has no apr node at all; this is the sdm845/sm8250 shape,
++	 * which is portable because the ADSP side of it is firmware, not SoC.
++	 *
++	 * The q6asm SID is inferred, not documented: sdm845 pairs fastrpc
++	 * compute-cb 0x1823 with q6asm 0x1821, and our fastrpc cbs are 0x1b23,
++	 * 0x1b24 and 0x1b25, so the matching q6asm SID is 0x1b21. If that is
++	 * wrong it shows up as an apps_smmu context fault on playback, not at
++	 * probe.
++	 *
++	 * qcom,protection-domain is deliberately left off. Upstream sets
++	 * "avs/audio"/"msm/adsp/audio_pd", which makes apr wait on a PDR lookup
++	 * served by pd-mapper. It is optional, and leaving it out lets these
++	 * probe as soon as the channel opens rather than adding a userspace
++	 * dependency to the first bring-up.
++	 */
++	glink-edge {
++		apr {
++			compatible = "qcom,apr-v2";
++			qcom,glink-channels = "apr_audio_svc";
++			qcom,domain = <APR_DOMAIN_ADSP>;
++			qcom,intents = <512 20>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			service@3 {
++				compatible = "qcom,q6core";
++				reg = <APR_SVC_ADSP_CORE>;
++			};
++
++			q6afe: service@4 {
++				compatible = "qcom,q6afe";
++				reg = <APR_SVC_AFE>;
++
++				q6afedai: dais {
++					compatible = "qcom,q6afe-dais";
++					#address-cells = <1>;
++					#size-cells = <0>;
++					#sound-dai-cells = <1>;
++				};
++
++				q6afecc: clock-controller {
++					compatible = "qcom,q6afe-clocks";
++					#clock-cells = <2>;
++				};
++			};
++
++			q6asm: service@7 {
++				compatible = "qcom,q6asm";
++				reg = <APR_SVC_ASM>;
++
++				q6asmdai: dais {
++					compatible = "qcom,q6asm-dais";
++					#address-cells = <1>;
++					#size-cells = <0>;
++					#sound-dai-cells = <1>;
++					iommus = <&apps_smmu 0x1b21 0x0>;
++				};
++			};
++
++			q6adm: service@8 {
++				compatible = "qcom,q6adm";
++				reg = <APR_SVC_ADM>;
++
++				q6routing: routing {
++					compatible = "qcom,q6adm-routing";
++					#sound-dai-cells = <0>;
++				};
++			};
++		};
++	};
++};
++&remoteproc_cdsp { status = "disabled"; };
++
++/*
++ * Audio front ends (what userspace opens) and the one back end this board
++ * actually has: Secondary TDM out to the four CS35L41 amps. The TDM timing
++ * values are copied from Samsung's overlay node qcom,msm-dai-tdm-sec-rx, which
++ * overrides the generic sm8150 reference values in the base DTB. Use the
++ * overlay's, not the base DTB's: they differ in sync-mode and invert-sync.
++ */
++&q6asmdai {
++	dai@0 { reg = <0>; };
++	dai@1 { reg = <1>; };
++	dai@2 { reg = <2>; };
++};
++
++&q6afedai {
++	/* microphones, via the CS48L33's ASP1 */
++	dai@128 {
++		reg = <QUINARY_MI2S_TX>;
++		qcom,sd-lines = <1>;
++	};
++
++	dai@40 {
++		reg = <SECONDARY_TDM_RX_0>;
++		qcom,tdm-sync-mode = <0>;
++		qcom,tdm-sync-src = <1>;
++		qcom,tdm-data-out = <0>;
++		qcom,tdm-invert-sync = <0>;
++		qcom,tdm-data-delay = <1>;
++		qcom,tdm-data-align = <0>;
++	};
++};
++/* mpss ENABLED for wifi: WCN3990 wlan fw runs on the modem Q6 */
++
++/* 2023 Samsung modem image needs 160MB from 0x8d800000 (ELF phdr truth);
++ * venus/slpi regions relocated out of its way - their devices are disabled,
++ * the reservations just must not collide with anything. */
++&mpss_mem { reg = <0x0 0x8d800000 0x0 0xa000000>; };
++&venus_mem { reg = <0x0 0x9f800000 0x0 0x500000>; };
++&slpi_mem { reg = <0x0 0x9b000000 0x0 0x1400000>; };	/* 20 MB ELF span, ends at the framebuffer */
++
++/* Samsung TZ rejects the rmtfs assign-to-MSS scm call (-22) and Samsung's
++ * own dt does no vmid assign on this region - drop it so the device probes
++ * and the rmtfs daemon can serve the modem's EFS. */
++&rmtfs_mem {
++	/delete-property/ reg;
++	size = <0x0 0x400000>;
++	alignment = <0x0 0x200000>;
++	alloc-ranges = <0x0 0xb0000000 0x0 0x40000000>;
++	qcom,use-guard-pages;
++};
++/* SLPI (sensor DSP): the IMU (LSM6DSO), magnetometer and light sensor are
++ * only reachable through it. Same TZ rule as the ADSP: region >= ELF span and
++ * not overlapping anything TZ owns - AND it must sit inside the firmware zone.
++ * 0x9f800000 (just past the last firmware region) was refused with the same
++ * flattened -22; 0x9b000000 was accepted. Downstream's 0x97300000 is inside
++ * the 160 MB modem span, so it cannot go back there. */
++&remoteproc_slpi {
++	status = "okay";
++	firmware-name = "qcom/sm8150/gts6l/slpi.mdt";
++
++	/* FastRPC to the sensors PD, wired the way sdm845.dtsi does it, NOT the
++	 * way sm8150.dtsi does. The sensor process is hypervisor-bypassed on the
++	 * SMMU and uses physical addresses; attaching translated context banks
++	 * to SIDs 0x5a1..0x5a3 makes its first access fault at 0x1fffff000 and
++	 * kills sensor_process on every attach. So: one cb with no iommus, and a
++	 * DMA pool the driver assigns to the DSP VMIDs by hypervisor call. */
++	glink-edge {
++		fastrpc {
++			qcom,vmids = <QCOM_SCM_VMID_HLOS QCOM_SCM_VMID_MSS_MSA
++				      QCOM_SCM_VMID_SSC_Q6 QCOM_SCM_VMID_ADSP_Q6>;
++			memory-region = <&fastrpc_mem>;
++
++			/delete-node/ compute-cb@1;
++			/delete-node/ compute-cb@2;
++			/delete-node/ compute-cb@3;
++
++			compute-cb@0 {
++				compatible = "qcom,fastrpc-compute-cb";
++				reg = <0>;
++			};
++		};
++	};
++};
++
++/* sm8150.dtsi gives reserved-memory no label */
++&{/reserved-memory} {
++	fastrpc_mem: fastrpc {
++		compatible = "shared-dma-pool";
++		alloc-ranges = <0x0 0xb0000000 0x0 0x40000000>;
++		alignment = <0x0 0x400000>;
++		size = <0x0 0x1000000>;
++		reusable;
++	};
++};
++
++
++
++
++&dispcc { status = "disabled"; };
++
++
++/* AMOLED bias rails (lab/ibb) left enabled by the bootloader -> fixed always-on,
++ * avoids needing the SPMI PMIC just to light the panel. */
++/ {
++	panel_vddlcd: regulator-panel-vddlcd {
++		compatible = "regulator-fixed";
++		regulator-name = "octa_vdd";
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		gpio = <&tlmm 113 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	panel_lab: regulator-panel-lab {
++		compatible = "regulator-fixed";
++		regulator-name = "panel_lab";
++		regulator-min-microvolt = <6000000>;
++		regulator-max-microvolt = <6000000>;
++		regulator-always-on;
++		regulator-boot-on;
++	};
++
++	panel_ibb: regulator-panel-ibb {
++		compatible = "regulator-fixed";
++		regulator-name = "panel_ibb";
++		regulator-min-microvolt = <6000000>;
++		regulator-max-microvolt = <6000000>;
++		regulator-always-on;
++		regulator-boot-on;
++	};
++};
++
++&mdss {
++	status = "disabled";
++};
++
++&mdss_mdp {
++	status = "disabled";
++};
++
++/* dsi0 = master link */
++&mdss_dsi0 {
++	status = "disabled";
++	vdda-supply = <&vreg_l3c_1p2>;
++
++	qcom,dual-dsi-mode;
++	qcom,master-dsi;
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&mdss_te_default>;
++
++	ports {
++		port@1 {
++			endpoint {
++				remote-endpoint = <&ana38401_in0>;
++				data-lanes = <0 1 2 3>;
++				/* self-generated vsync: prove the pipe without panel TE */
++				qcom,te-source = "timer0";
++			};
++		};
++	};
++
++	panel@0 {
++		compatible = "samsung,ana38401-amsa05rb06";
++		reg = <0>;
++
++		vddio-supply = <&panel_vddlcd>;
++		lab-supply = <&panel_lab>;
++		ibb-supply = <&panel_ibb>;
++
++		reset-gpios = <&tlmm 59 GPIO_ACTIVE_LOW>;
++		tcon-rdy-gpios = <&tlmm 140 GPIO_ACTIVE_HIGH>;
++
++		ports {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			port@0 {
++				reg = <0>;
++				ana38401_in0: endpoint {
++					remote-endpoint = <&mdss_dsi0_out>;
++				};
++			};
++
++			port@1 {
++				reg = <1>;
++				ana38401_in1: endpoint {
++					remote-endpoint = <&mdss_dsi1_out>;
++				};
++			};
++		};
++	};
++};
++
++&mdss_dsi0_phy {
++	status = "disabled";
++	vdds-supply = <&vreg_l5a_0p875>;
++};
++
++/* dsi1 = slave link (uses dsi0 PHY PLL) */
++&mdss_dsi1 {
++	status = "disabled";
++	vdda-supply = <&vreg_l3c_1p2>;
++
++	qcom,dual-dsi-mode;
++
++	assigned-clock-parents = <&mdss_dsi0_phy 0>, <&mdss_dsi0_phy 1>;
++
++	ports {
++		port@1 {
++			endpoint {
++				remote-endpoint = <&ana38401_in1>;
++				data-lanes = <0 1 2 3>;
++			};
++		};
++	};
++};
++
++&mdss_dsi1_phy {
++	status = "disabled";
++	vdds-supply = <&vreg_l5a_0p875>;
++};
++
++/* STM FingerTipS touchscreen (downstream: fts1ba90a on qupv3_se17, irq gpio 87,
++ * dvdd=pm8150_l14 avdd=pm8150_l17, coords 1600x2560 portrait) */
++&i2c17 {
++	status = "okay";
++
++	touchscreen@49 {
++		compatible = "st,fts1ba90a";
++		reg = <0x49>;
++		interrupt-parent = <&tlmm>;
++		interrupts = <87 IRQ_TYPE_LEVEL_LOW>;
++		avdd-supply = <&vreg_l17a_3p0>;
++		vdd-supply = <&vreg_l14a_1p8>;
++		touchscreen-size-x = <1600>;
++		touchscreen-size-y = <2560>;
++		touchscreen-swapped-x-y;
++		touchscreen-inverted-x;
++	};
++};
++
++/* QUP2 GPI DMA engine - SE17 (touch i2c) is GSI-only per boot fw */
++&gpi_dma2 { status = "okay"; };
++
++/* Adreno 640 render-only GPU (scanout stays on simpledrm; Mesa kmsro pairs
++ * them - same topology as the z3s daily driver). Zap shader is Samsung's own
++ * signed a640_zap.mdt lifted from the apnhlos partition (sda16:/image/) -
++ * Samsung TZ rejects the Qualcomm test-signed one in linux-firmware.
++ * Speed-bin fuse cell dropped: CONFIG_QCOM_QFPROM isn't enabled and poking a
++ * new TZ-guarded fuse region is needless risk; -ENOENT = all OPPs allowed. */
++&gpu {
++	status = "okay";
++	/* Opt into the headless (render-only) msm master - scanout is simpledrm,
++	 * there is no mdss node to act as the drm master otherwise. Remove this
++	 * (and the adreno_device.c gate) once native display/DPU comes up. */
++	compatible = "qcom,adreno-640.1", "qcom,adreno", "qcom,kgsl-3d0";
++	/delete-property/ nvmem-cells;
++	/delete-property/ nvmem-cell-names;
++
++	zap-shader {
++		memory-region = <&gpu_mem>;
++		firmware-name = "qcom/sm8150/gts6l/a640_zap.mdt";
++	};
++};
++
++&gmu {
++	status = "okay";
++};
++
++/* Put the WLAN MSA in ordinary DDR that HLOS owns, at a fixed physical address.
++ * Samsung's pil_wlan_fw_region (0x8bc00000) belongs to the firmware loader, so
++ * qcom_scm_assign_mem() could never grant permissions on it (-22). Plain system
++ * RAM is HLOS-owned, so the assign succeeds -- while still being a real physical
++ * address the modem-side firmware can accept, which a self-allocated IOVA is not
++ * once the SMMU is attached. */
++&wlan_mem {
++	reg = <0x0 0xc0000000 0x0 0x100000>;
++};
++
++/* Battery sensing. The pm8150b ADC block upstream declares only reference and
++ * temperature channels, so there is no way to read the battery at all. pm8150b
++ * is the PMIC carrying the charger and fuel gauge on this board.
++ *
++ * VBAT_SNS and VPH_PWR both arrive through a divide-by-three network, hence the
++ * 1:3 pre-scaling; without it the driver reports a third of the real voltage.
++ * VPH_PWR is the system rail and tracks the battery closely, so it is a useful
++ * cross-check that VBAT_SNS is reading something real rather than noise. */
++/* Pin state for the volume up key; see the gpio-keys node for why pm8150L. */
++&pm8150l_gpios {
++	key_vol_up_default: key-vol-up-state {
++		pins = "gpio12";
++		function = "normal";
++		input-enable;
++		bias-pull-up;
++		power-source = <0>;
++	};
++};
++
++/*
++ * Microphones. They are not on the SoC and not on the speaker amps: they hang
++ * off a Cirrus CS48L33 on QUP0 SE3 SPI, which carries MICBIAS and the analogue
++ * inputs, so nothing can capture until this part is up.
++ *
++ * Declared as cs48l32 on purpose. Mainline has no cs48l33 driver; 6.18 gained
++ * one for the CS48L32, its sibling in the Tacna family, and it is backported
++ * here. Samsung's own firmware for this device is named cs48l32-dsp1-ctrl.wmfw,
++ * which is the reason to think the parts are close. The driver validates the
++ * silicon ID and refuses anything it does not recognise, printing what it
++ * actually found, so this either binds or tells us exactly which part this is.
++ *
++ * Supply names are the mainline ones (vdd-a/vdd-io/vdd-cp/vdd-d), NOT Samsung's
++ * VDD_A/VDD_IO1/VDD1_CP/VDD_D. Using theirs verbatim fails probe.
++ */
++&spi3 {
++	status = "okay";
++
++	cs48l33: audio-codec@0 {
++		compatible = "cirrus,cs48l33";
++		reg = <0>;
++		spi-max-frequency = <25000000>;
++		#sound-dai-cells = <1>;
++
++		interrupt-parent = <&tlmm>;
++		interrupts = <12 IRQ_TYPE_LEVEL_LOW>;
++
++		/*
++		 * The IRQ line is open drain and needs the pull up, or it floats
++		 * and a level-low interrupt reads as permanently asserted: the
++		 * handler finds nothing to service, returns IRQ_NONE, and after
++		 * 100000 of those the kernel prints "irq 179: nobody cared" and
++		 * disables the line.
++		 */
++		pinctrl-names = "default";
++		pinctrl-0 = <&cs48l33_irq_default>;
++
++		reset-gpios = <&pm8150l_gpios 2 GPIO_ACTIVE_HIGH>;
++
++		vdd-a-supply = <&vreg_cdc_1p8>;
++		vdd-io-supply = <&vreg_cdc_1p8>;
++		vdd-cp-supply = <&vreg_cdc_1p8>;
++		vdd-d-supply = <&vreg_cdc_dcvdd>;
++
++		/* all four analogue inputs differential, which is the default */
++		cirrus,in-type = <0 0 0 0>;
++	};
++};
++
++&pm8150b_adc {
++	channel@83 {
++		reg = <ADC5_VPH_PWR>;
++		qcom,pre-scaling = <1 3>;
++		label = "vph_pwr";
++	};
++
++	channel@84 {
++		reg = <ADC5_VBAT_SNS>;
++		qcom,pre-scaling = <1 3>;
++		label = "vbat_sns";
++	};
++};
++
++/* The battery rail, read from the PMIC that actually probes.
++ *
++ * VBAT_SNS lives on pm8150b (the charger PMIC), but the SPMI arbiter on this
++ * board denies the applications EE the revision read on SID 2, so the MFD
++ * driver never instantiates any pm8150b child at all. pm8150 (SID 0) probes
++ * fine, and VPH_PWR is that PMIC's own supply rail -- which on a tablet is the
++ * battery rail. It sags a little under load compared with a true VBAT_SNS
++ * reading, but it tracks the battery and it is reachable. */
++&pm8150_adc {
++	channel@83 {
++		reg = <ADC5_VPH_PWR>;
++		qcom,pre-scaling = <1 3>;
++		label = "vph_pwr";
++	};
++};
++
++/ {
++	/* Battery description. The percentage is derived from voltage against
++	 * this open-circuit-voltage curve, because Qualcomm's own fuel gauge
++	 * (QG) has no mainline driver and the gauge itself sits on pm8150b,
++	 * which the SPMI arbiter will not let us talk to. A generic 4.4 V
++	 * Li-ion curve; the pack is 7040 mAh. */
++	gts6l_battery: battery {
++		compatible = "simple-battery";
++		voltage-min-design-microvolt = <3400000>;
++		voltage-max-design-microvolt = <4400000>;
++		charge-full-design-microamp-hours = <7040000>;
++		ocv-capacity-celsius = <25>;
++		ocv-capacity-table-0 = <4400000 100>, <4330000 95>, <4270000 90>,
++			<4210000 85>, <4150000 80>, <4090000 75>, <4030000 70>,
++			<3980000 65>, <3930000 60>, <3880000 55>, <3840000 50>,
++			<3810000 45>, <3780000 40>, <3750000 35>, <3720000 30>,
++			<3690000 25>, <3660000 20>, <3630000 15>, <3590000 10>,
++			<3530000 5>, <3400000 0>;
++	};
++
++	/* Reads the battery rail through pm8150's ADC. */
++	adc-battery {
++		compatible = "adc-battery";
++		io-channels = <&pm8150_adc ADC5_VPH_PWR>;
++		io-channel-names = "voltage";
++		monitored-battery = <&gts6l_battery>;
++	};
++};
++
++/* Power off.
++ *
++ * Mainline sm8150.dtsi has no PS_HOLD node, so drivers/power/reset/msm-poweroff.c
++ * ("qcom,pshold", driver name msm-restart) had no device to bind to and never
++ * registered a power-off handler. reboot(RB_POWER_OFF) therefore did nothing,
++ * and systemd fell back to a reboot - which is why choosing "Power Off" ended at
++ * "systemd-shutdown: Rebooting." and then hung on that screen.
++ *
++ * Address taken from Samsung own device tree, which has
++ * restart@c264000 { compatible = "qcom,pshold"; }. The driver only maps the
++ * first reg, so the tcsr-boot-misc-detect range Samsung also lists is not needed.
++ *
++ * The driver registers a RESTART handler too, but at priority 128, below PSCI at
++ * SYS_OFF_PRIO_FIRMWARE - so reboot, which already works, keeps going through
++ * PSCI and only power-off gains a new path. */
++&soc {
++	restart@c264000 {
++		compatible = "qcom,pshold";
++		reg = <0x0 0x0c264000 0x0 0x4>;
++	};
++};
++
++/* USB dual-role.
++ *
++ * This was pinned to "peripheral" so the RNDIS + ACM gadget could act as the
++ * development lifeline when nothing else worked. Wi-Fi is reliable now, and a
++ * tablet with no built-in keyboard badly wants to be able to host one, so the
++ * port becomes dual-role instead.
++ *
++ * usb-role-switch registers a role switch under /sys/class/usb_role, so the
++ * port can be flipped between device and host at runtime rather than being
++ * fixed at build time - the gadget lifeline stays available when it is wanted.
++ *
++ * Caveat worth knowing before blaming the kernel: nothing here drives a VBUS
++ * boost. The regulator that powers a downstream device lives in the SM5705,
++ * which has no driver yet. A self-powered hub should enumerate; a bus-powered
++ * keyboard plugged straight in may get no power. */
++&usb_1_dwc3 {
++	dr_mode = "otg";
++	usb-role-switch;
++};
++
++/* SM5705 fuel gauge lives here.
++ *
++ * Samsung fits a Silicon Mitus SM5705 - combined charger, fuel gauge and MUIC -
++ * rather than using the Qualcomm PMIC for the battery. Per Samsung own overlay
++ * the gauge is at 0x71 on qupv3_se11_i2c, while the charger at 0x49 and the
++ * MUIC at 0x25 sit on se4, which is already enabled as i2c4. */
++&i2c11 {
++	status = "okay";
++	clock-frequency = <400000>;
++
++	/* sm5705-fuelgauge@71 */
++};
++
++/* The real fuel gauge.
++ *
++ * This replaces the ADC-derived battery entirely. That one read the rail
++ * voltage through pm8150 and mapped it against a textbook Li-ion curve, which
++ * was the best available while pm8150b looked like the only option - but it
++ * cannot see current, so it could never tell charging from discharging, and
++ * charging inflates terminal voltage badly enough that it read 68 percent when
++ * the real gauge said 46. */
++&i2c11 {
++	sm5705_fg: fuelgauge@71 {
++		compatible = "siliconmitus,sm5705-fuelgauge";
++		reg = <0x71>;
++		monitored-battery = <&gts6l_battery>;
++	};
++};
++
++/ {
++	/delete-node/ adc-battery;
++};
++
++/* PTN36502 USB-C SuperSpeed redriver.
++ *
++ * USB-C can be plugged in either way round, so the SuperSpeed differential
++ * pairs have to be muxed to whichever orientation the cable actually took.
++ * Nothing here does that yet, which is why a USB 3 device negotiates only
++ * high-speed and lands on the USB2 root hub. Samsung put a PTN36502 on se10
++ * to do the muxing; enable the bus so it can at least be talked to. */
++&i2c10 {
++	status = "okay";
++	clock-frequency = <400000>;
++};
++
++/*
++ * The PMIC RTC counter CANNOT be set on this device. Do not add
++ * allow-set-time here - it was tried, and it makes things worse.
++ *
++ * Without it rtc-pm8xxx takes the nvmem offset path and returns -ENODEV
++ * immediately, quietly. With it the driver goes on to write the counter,
++ * and the SPMI arbiter refuses the transaction outright:
++ *
++ *     spmi spmi-0: disallowed SPMI write to sid=0, addr=0x6046
++ *
++ * 0x6046 is the RTC control register and the firmware owns write access,
++ * the same ownership wall that keeps pm8150b off limits. Because
++ * CONFIG_RTC_SYSTOHC=y points at rtc0, the kernel retries this every 11
++ * minutes forever - 602 denied writes in the first 122 seconds of the one
++ * boot it was enabled for.
++ *
++ * Reading the RTC works, and alarms work, which is what suspend/resume
++ * needs. Wall clock time comes from systemd-timesyncd instead.
++ */
++
++/*
++ * Bluetooth: WCN3990 over UART.
++ *
++ * Same chip as the Wi-Fi side, but a completely separate transport: Wi-Fi is
++ * ath10k_snoc talking to firmware on the modem DSP, while Bluetooth is a plain
++ * HCI UART that mainline's hci_qca drives directly. The supplies are therefore
++ * the same four rails the &wifi node already uses.
++ *
++ * The catch is that mainline's sm8150.dtsi describes this serial engine only as
++ * i2c13 and spi13. It is one QUP SE that can be any of i2c, spi or uart, and
++ * upstream simply never declared the uart personality for it. Downstream has it
++ * as qup_uart@0xc8c000 "qcom,msm-geni-serial-hs" and it is the ONLY high-speed
++ * UART downstream enables, which is what identifies it as the Bluetooth one.
++ *
++ * Pins come straight from the downstream qupv3_se13_4uart_pins group, and
++ * mainline's pinctrl already has a matching qup13 function covering exactly
++ * gpio43-46. BT_EN is gpio172, from downstream bt_en_active.
++ */
++&qupv3_id_2 {
++	uart13: serial@c8c000 {
++		compatible = "qcom,geni-uart";
++		reg = <0 0x00c8c000 0 0x4000>;
++		clock-names = "se";
++		clocks = <&gcc GCC_QUPV3_WRAP2_S3_CLK>;
++		interrupts = <GIC_SPI 585 IRQ_TYPE_LEVEL_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&qup_uart13_cts &qup_uart13_rts_tx &qup_uart13_rx>;
++		status = "okay";
++
++		bluetooth {
++			compatible = "qcom,wcn3990-bt";
++
++			/* The same rails as &wifi; this is one chip. */
++			vddio-supply = <&vreg_s4a_1p8>;
++			vddxo-supply = <&vreg_l7a_1p8>;
++			vddrf-supply = <&vreg_l2c_1p3>;
++			vddch0-supply = <&vreg_l11c_3p3>;
++
++			/*
++			 * Deliberately NO enable-gpios.
++			 *
++			 * A bt_en_active pinctrl state on gpio172 does exist in
++			 * the base DTB, and it is tempting to wire it up here.
++			 * It has zero consumers: the downstream BT node carries
++			 * no gpio properties at all, and the part is powered
++			 * purely by the three regulators above. Asserting an
++			 * unrelated pad because a pinctrl group mentions it is
++			 * how you break something that was working.
++			 */
++
++			max-speed = <3200000>;
++		};
++	};
++};
++
++&tlmm {
++	/*
++	 * These come from the states the downstream UART node actually points
++	 * at (qupv3_se13_uart_pins: cts_active / rtstx_active / rx_active), not
++	 * from the similarly named qupv3_se13_4uart_pins group next to it.
++	 *
++	 * The bias matters. Leaving these pins with no bias at all lets RX and
++	 * CTS float, and the symptom is not a dead UART - it is a working one
++	 * that occasionally garbles a frame. That showed up as
++	 * "Frame reassembly failed (-84)" during the QCA handshake, and a
++	 * corrupted version response makes hci_qca derive the wrong firmware
++	 * name from it.
++	 *
++	 * Downstream also sets output-high on rts/tx in the active state. That
++	 * is deliberately not copied: output-high on a pin muxed away from GPIO
++	 * is not meaningful to pinctrl-msm, and every upstream QUP UART state
++	 * omits it.
++	 */
++	qup_uart13_cts: qup-uart13-cts-state {
++		pins = "gpio43";
++		function = "qup13";
++		drive-strength = <2>;
++		bias-pull-up;
++	};
++
++	qup_uart13_rts_tx: qup-uart13-rts-tx-state {
++		pins = "gpio44", "gpio45";
++		function = "qup13";
++		drive-strength = <2>;
++		bias-pull-up;
++	};
++
++	qup_uart13_rx: qup-uart13-rx-state {
++		pins = "gpio46";
++		function = "qup13";
++		drive-strength = <2>;
++		bias-pull-up;
++	};
++};
+--- /dev/null
++++ b/arch/arm64/boot/dts/qcom/sm8150-samsung-gts6lwifi-native.dts
+@@ -0,0 +1,67 @@
++// SPDX-License-Identifier: BSD-3-Clause
++/* Experimental native display target; never substitute for the fallback DTB. */
++#include "sm8150-samsung-gts6lwifi.dts"
++
++&framebuffer0 {
++	status = "disabled";
++};
++
++/* Samsung's ANA38401 supply is GPIO113 (octa-vdd), not an always-on rail.
++ * The firmware/simpledrm fallback still retains its inherited always-on policy.
++ */
++&panel_vddlcd {
++	/delete-property/ regulator-always-on;
++	startup-delay-us = <10000>;
++};
++
++&dispcc { status = "okay"; };
++&fb_mem {
++	/* Preserve boot scanout while MDSS switches to the Linux IOMMU domain. */
++	iommu-addresses = <&mdss 0x0 0x9c400000 0x0 0x02000000>;
++};
++
++&mdss {
++	status = "okay";
++	memory-region = <&fb_mem>;
++};
++&mdss_mdp { status = "okay"; };
++&mdss_dsi0_phy { status = "okay"; };
++&mdss_dsi1_phy { status = "okay"; };
++
++&gpu {
++	/* The DPU is now the DRM master; do not use the render-only probe. */
++	compatible = "qcom,adreno-640.1", "qcom,adreno";
++};
++
++&mdss_dsi0 {
++	status = "okay";
++	/* Control commands are unicast on DSI0, so no qcom,sync-dual-dsi. */
++	panel@0 {
++		link2 = <&ana38401_secondary>;
++		ports {
++			/delete-node/ port@1;
++		};
++	};
++};
++
++&mdss_dsi0_out {
++	/* Select the wired TE input (GPIO8) instead of a software timer. */
++	/delete-property/ qcom,te-source;
++};
++
++&mdss_dsi1 {
++	status = "okay";
++	ana38401_secondary: panel@0 {
++		compatible = "samsung,ana38401-amsa05rb06-secondary";
++		reg = <0>;
++		port {
++			ana38401_native_in1: endpoint {
++				remote-endpoint = <&mdss_dsi1_out>;
++			};
++		};
++	};
++};
++
++&mdss_dsi1_out {
++	remote-endpoint = <&ana38401_native_in1>;
++};

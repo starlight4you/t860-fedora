@@ -1,0 +1,101 @@
+name: Build patcher for multi platforms.
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows x86_64
+          - os: windows-latest
+            arch: x86_64
+            c_compiler: cl
+            cpp_compiler: cl
+
+          # Windows ARM64
+          - os: windows-11-arm
+            arch: aarch64
+            c_compiler: cl
+            cpp_compiler: cl
+
+          # Linux x86_64
+          - os: ubuntu-latest
+            arch: x86_64
+            c_compiler: clang
+            cpp_compiler: clang
+
+          # Linux ARM64
+          - os: ubuntu-24.04-arm
+            arch: aarch64
+            c_compiler: clang
+            cpp_compiler: clang
+
+          # macOS x86_64
+          - os: macos-latest
+            arch: x86_64
+            c_compiler: clang
+            cpp_compiler: clang
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set reusable strings
+        id: strings
+        shell: bash
+        run: |
+          echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+
+      - name: Configure Compiler
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm' }}
+        run: |
+          sudo apt install gcc-aarch64-linux-gnu
+          echo -e \\nset\(CMAKE_C_FLAGS "--target=${{ matrix.arch }}-linux-gnu"\) \\n >> ${{ github.workspace }}/CMakeLists.txt
+
+      - name: Configure CMake
+        run: >
+          cmake -B ${{ steps.strings.outputs.build-output-dir }}
+          -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+          -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+          -DCMAKE_BUILD_TYPE=Release
+          -S ${{ github.workspace }}
+
+      - name: Build Patcher and other tools
+        if: ${{ matrix.os != 'ubuntu-latest' || matrix.os != 'ubuntu-24.04-arm' }}
+        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config Release --target DualBootKernelPatcher DualBootPatchRemover HDRTool
+
+      - name: Build ASM Codes
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm' }}
+        run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config Release
+
+      - name: Upload Tools
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tools-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            ${{ steps.strings.outputs.build-output-dir }}/**/DualBootKernelPatcher*
+            ${{ steps.strings.outputs.build-output-dir }}/**/DualBootPatchRemover*
+            ${{ steps.strings.outputs.build-output-dir }}/**/HDRTool*
+
+      - name: Upload ASM Bins
+        uses: actions/upload-artifact@v4
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        with:
+          name: Shellcodes
+          path: |
+            ${{ steps.strings.outputs.build-output-dir }}/ShellCode/*
+
+      - name: Upload Configs
+        uses: actions/upload-artifact@v4
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        with:
+          name: Configs
+          path: |
+            Config/*

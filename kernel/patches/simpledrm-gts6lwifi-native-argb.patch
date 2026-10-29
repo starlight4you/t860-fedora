@@ -1,0 +1,40 @@
+From: Tab S6 mainline port
+Subject: [PATCH] drm/simpledrm: offer native ARGB8888 on gts6lwifi
+
+The firmware framebuffer on this board is ARGB8888, but the generic format
+list helper advertises only XRGB8888. CPU samples during window movement
+show drm_fb_xrgb8888_to_argb8888_line as a significant hotspot. Offer the
+native ARGB format as well, retaining XRGB fallback support. KWin 6.7.5
+prefers an alpha-capable format of otherwise equal precision.
+
+Limit the additional format to this board and native ARGB8888. This does
+not change the framebuffer's alpha interpretation, remove the CPU copy,
+or add physical vblank synchronization. Tested on 6.12.0-t860-gpu1: KWin
+selects AR24, colors and touch are normal, and the conversion hotspot is gone.
+
+--- a/drivers/gpu/drm/tiny/simpledrm.c
++++ b/drivers/gpu/drm/tiny/simpledrm.c
+@@ -949,8 +949,21 @@
+ 
+ 	/* Primary plane */
+ 
+-	nformats = drm_fb_build_fourcc_list(dev, &format->format, 1,
+-					    sdev->formats, ARRAY_SIZE(sdev->formats));
++	/*
++	 * This board's firmware scanout uses ARGB8888. The generic helper
++	 * advertises its non-alpha counterpart, requiring an opaque-alpha
++	 * conversion on every update. Also offer the actual native format
++	 * so compositors can avoid that conversion. Keep the generic formats
++	 * as fallbacks and leave the hardware framebuffer format unchanged.
++	 */
++	nformats = 0;
++	if (of_machine_is_compatible("samsung,gts6lwifi") &&
++	    format->format == DRM_FORMAT_ARGB8888)
++		sdev->formats[nformats++] = format->format;
++
++	nformats += drm_fb_build_fourcc_list(dev, &format->format, 1,
++					     sdev->formats + nformats,
++					     ARRAY_SIZE(sdev->formats) - nformats);
+ 
+ 	primary_plane = &sdev->primary_plane;
+ 	ret = drm_universal_plane_init(dev, primary_plane, 0, &simpledrm_primary_plane_funcs,

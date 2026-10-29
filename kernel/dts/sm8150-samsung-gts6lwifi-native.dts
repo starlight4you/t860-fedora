@@ -1,0 +1,67 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/* Experimental native display target; never substitute for the fallback DTB. */
+#include "sm8150-samsung-gts6lwifi.dts"
+
+&framebuffer0 {
+	status = "disabled";
+};
+
+/* Samsung's ANA38401 supply is GPIO113 (octa-vdd), not an always-on rail.
+ * The firmware/simpledrm fallback still retains its inherited always-on policy.
+ */
+&panel_vddlcd {
+	/delete-property/ regulator-always-on;
+	startup-delay-us = <10000>;
+};
+
+&dispcc { status = "okay"; };
+&fb_mem {
+	/* Preserve boot scanout while MDSS switches to the Linux IOMMU domain. */
+	iommu-addresses = <&mdss 0x0 0x9c400000 0x0 0x02000000>;
+};
+
+&mdss {
+	status = "okay";
+	memory-region = <&fb_mem>;
+};
+&mdss_mdp { status = "okay"; };
+&mdss_dsi0_phy { status = "okay"; };
+&mdss_dsi1_phy { status = "okay"; };
+
+&gpu {
+	/* The DPU is now the DRM master; do not use the render-only probe. */
+	compatible = "qcom,adreno-640.1", "qcom,adreno";
+};
+
+&mdss_dsi0 {
+	status = "okay";
+	/* Control commands are unicast on DSI0, so no qcom,sync-dual-dsi. */
+	panel@0 {
+		link2 = <&ana38401_secondary>;
+		ports {
+			/delete-node/ port@1;
+		};
+	};
+};
+
+&mdss_dsi0_out {
+	/* Select the wired TE input (GPIO8) instead of a software timer. */
+	/delete-property/ qcom,te-source;
+};
+
+&mdss_dsi1 {
+	status = "okay";
+	ana38401_secondary: panel@0 {
+		compatible = "samsung,ana38401-amsa05rb06-secondary";
+		reg = <0>;
+		port {
+			ana38401_native_in1: endpoint {
+				remote-endpoint = <&mdss_dsi1_out>;
+			};
+		};
+	};
+};
+
+&mdss_dsi1_out {
+	remote-endpoint = <&ana38401_native_in1>;
+};

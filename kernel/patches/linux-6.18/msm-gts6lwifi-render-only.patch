@@ -1,0 +1,27 @@
+--- a/drivers/gpu/drm/msm/adreno/adreno_device.c
++++ b/drivers/gpu/drm/msm/adreno/adreno_device.c
+@@ -270,7 +270,9 @@
+ static int adreno_probe(struct platform_device *pdev)
+ {
+ 	if (of_device_is_compatible(pdev->dev.of_node, "amd,imageon") ||
+-	    msm_gpu_no_components())
++	    msm_gpu_no_components() ||
++	    (of_machine_is_compatible("samsung,gts6lwifi") &&
++	     of_device_is_compatible(pdev->dev.of_node, "qcom,kgsl-3d0")))
+ 		return msm_gpu_probe(pdev, &a3xx_ops);
+ 
+ 	return component_add(&pdev->dev, &a3xx_ops);
+--- a/drivers/gpu/drm/msm/adreno/a6xx_gpu.c
++++ b/drivers/gpu/drm/msm/adreno/a6xx_gpu.c
+@@ -2512,7 +2512,10 @@
+ 	 * fine
+ 	 */
+ 	if (ret == -ENOENT) {
+-		return 0;
++		if (!of_machine_is_compatible("samsung,gts6lwifi"))
++			return 0;
++		/* The board omits the inaccessible fuse; keep conservative OPPs. */
++		speedbin = 0;
+ 	} else if (ret) {
+ 		dev_err_probe(dev, ret,
+ 			      "failed to read speed-bin. Some OPPs may not be supported by hardware\n");

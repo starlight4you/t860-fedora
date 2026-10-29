@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.img
+*.img.gz*
+*.tar.gz
+*.tar.xz
+*.partial
+android-backup*/
+release/*
+!release/.gitkeep
+private/

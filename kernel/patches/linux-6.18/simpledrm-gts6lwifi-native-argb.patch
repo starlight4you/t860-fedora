@@ -1,0 +1,30 @@
+--- a/drivers/gpu/drm/sysfb/simpledrm.c
++++ b/drivers/gpu/drm/sysfb/simpledrm.c
+@@ -801,8 +801,14 @@
+ 
+ 	/* Primary plane */
+ 
+-	nformats = drm_sysfb_build_fourcc_list(dev, &format->format, 1,
+-					       sdev->formats, ARRAY_SIZE(sdev->formats));
++	/* Preserve the firmware's alpha interpretation and avoid conversion. */
++	nformats = 0;
++	if (of_machine_is_compatible("samsung,gts6lwifi") &&
++	    format->format == DRM_FORMAT_ARGB8888)
++		sdev->formats[nformats++] = format->format;
++	nformats += drm_sysfb_build_fourcc_list(dev, &format->format, 1,
++					       sdev->formats + nformats,
++					       ARRAY_SIZE(sdev->formats) - nformats);
+ 
+ 	primary_plane = &sdev->primary_plane;
+ 	ret = drm_universal_plane_init(dev, primary_plane, 0, &simpledrm_primary_plane_funcs,
+@@ -881,6 +887,10 @@
+ 	struct drm_device *dev;
+ 	int ret;
+ 
++	ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(64));
++	if (ret)
++		return ret;
++
+ 	sdev = simpledrm_device_create(&simpledrm_driver, pdev);
+ 	if (IS_ERR(sdev))
+ 		return PTR_ERR(sdev);

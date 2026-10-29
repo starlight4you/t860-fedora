@@ -1,0 +1,107 @@
+From: Tab S6 mainline port
+Subject: [PATCH] drm/msm/dsi: defer ANA38401 HS clock until panel prepare
+
+The ANA38401 TCON reset sequence requires LP11 before reset and readiness
+polling. Keep the continuous-clock request off for this panel during host
+power-on, then request it on both bonded links in bridge enable, after
+panel prepare and before panel enable sends the HS initialization commands.
+All other panel compatibles retain their existing clock sequence.
+
+This is an experimental board bring-up change, compiled on Linux 6.18.59;
+hardware validation is still required.
+
+---
+--- a/drivers/gpu/drm/msm/dsi/dsi_host.c
++++ b/drivers/gpu/drm/msm/dsi/dsi_host.c
+@@ -172,6 +172,7 @@
+ 	unsigned int lanes;
+ 	enum mipi_dsi_pixel_format format;
+ 	unsigned long mode_flags;
++	bool defer_hs_clock;
+ 
+ 	/* lane data parsed via DT */
+ 	int dlane_swap;
+@@ -909,7 +910,7 @@
+ 	dsi_write(msm_host, REG_DSI_LANE_SWAP_CTRL,
+ 		  DSI_LANE_SWAP_CTRL_DLN_SWAP_SEL(msm_host->dlane_swap));
+ 
+-	if (!(flags & MIPI_DSI_CLOCK_NON_CONTINUOUS)) {
++	if (!(flags & MIPI_DSI_CLOCK_NON_CONTINUOUS) && !msm_host->defer_hs_clock) {
+ 		lane_ctrl = dsi_read(msm_host, REG_DSI_LANE_CTRL);
+ 
+ 		if (msm_dsi_phy_set_continuous_clock(phy, true))
+@@ -1722,6 +1723,9 @@
+ 	msm_host->lanes = dsi->lanes;
+ 	msm_host->format = dsi->format;
+ 	msm_host->mode_flags = dsi->mode_flags;
++	msm_host->defer_hs_clock =
++		of_device_is_compatible(dsi->dev.of_node, "samsung,ana38401-amsa05rb06") ||
++		of_device_is_compatible(dsi->dev.of_node, "samsung,ana38401-amsa05rb06-secondary");
+ 	if (dsi->dsc)
+ 		msm_host->dsc = dsi->dsc;
+ 
+@@ -2409,6 +2413,22 @@
+ 	disable_irq(msm_host->irq);
+ }
+ 
++/* ANA38401 must see LP11 while reset and TCON-ready complete. */
++void msm_dsi_host_enable_deferred_hs(struct mipi_dsi_host *host,
++				     struct msm_dsi_phy *phy)
++{
++	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
++	u32 lane_ctrl;
++
++	if (!msm_host->defer_hs_clock || !msm_host->power_on)
++		return;
++	lane_ctrl = dsi_read(msm_host, REG_DSI_LANE_CTRL);
++	if (msm_dsi_phy_set_continuous_clock(phy, true))
++		lane_ctrl &= ~DSI_LANE_CTRL_HS_REQ_SEL_PHY;
++	dsi_write(msm_host, REG_DSI_LANE_CTRL,
++		  lane_ctrl | DSI_LANE_CTRL_CLKLN_HS_FORCE_REQUEST);
++}
++
+ int msm_dsi_host_enable(struct mipi_dsi_host *host)
+ {
+ 	struct msm_dsi_host *msm_host = to_msm_dsi_host(host);
+--- a/drivers/gpu/drm/msm/dsi/dsi_manager.c
++++ b/drivers/gpu/drm/msm/dsi/dsi_manager.c
+@@ -331,6 +331,20 @@
+ 	}
+ }
+ 
++/* Enable HS only after panel prepare has waited for the TCON. */
++static void dsi_mgr_bridge_enable(struct drm_bridge *bridge)
++{
++	int id = dsi_mgr_bridge_get_id(bridge);
++	struct msm_dsi *dsi = dsi_mgr_get_dsi(id);
++	struct msm_dsi *other = dsi_mgr_get_other_dsi(id);
++
++	if (IS_BONDED_DSI() && !IS_MASTER_DSI_LINK(id))
++		return;
++	msm_dsi_host_enable_deferred_hs(dsi->host, dsi->phy);
++	if (IS_BONDED_DSI() && other)
++		msm_dsi_host_enable_deferred_hs(other->host, other->phy);
++}
++
+ static void dsi_mgr_bridge_post_disable(struct drm_bridge *bridge)
+ {
+ 	int id = dsi_mgr_bridge_get_id(bridge);
+@@ -447,6 +461,7 @@
+ static const struct drm_bridge_funcs dsi_mgr_bridge_funcs = {
+ 	.attach = dsi_mgr_bridge_attach,
+ 	.pre_enable = dsi_mgr_bridge_pre_enable,
++	.enable = dsi_mgr_bridge_enable,
+ 	.post_disable = dsi_mgr_bridge_post_disable,
+ 	.mode_set = dsi_mgr_bridge_mode_set,
+ 	.mode_valid = dsi_mgr_bridge_mode_valid,
+--- a/drivers/gpu/drm/msm/dsi/dsi.h
++++ b/drivers/gpu/drm/msm/dsi/dsi.h
+@@ -68,6 +68,8 @@
+ 					const struct mipi_dsi_msg *msg);
+ void msm_dsi_host_cmd_xfer_commit(struct mipi_dsi_host *host,
+ 					u32 dma_base, u32 len);
++void msm_dsi_host_enable_deferred_hs(struct mipi_dsi_host *host,
++				     struct msm_dsi_phy *phy);
+ int msm_dsi_host_enable(struct mipi_dsi_host *host);
+ int msm_dsi_host_disable(struct mipi_dsi_host *host);
+ void msm_dsi_host_enable_irq(struct mipi_dsi_host *host);

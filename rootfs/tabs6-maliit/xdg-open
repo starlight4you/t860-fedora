@@ -1,0 +1,4 @@
+#!/bin/sh
+# Maliit sets inputpanel-shell internally. Its URL launcher must instead use
+# the normal desktop shell and connection, including when it launches Qt 6.
+exec /usr/bin/env -u QT_WAYLAND_SHELL_INTEGRATION -u WAYLAND_SOCKET /usr/bin/xdg-open "$@"

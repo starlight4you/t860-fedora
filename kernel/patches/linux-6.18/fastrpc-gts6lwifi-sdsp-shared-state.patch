@@ -1,0 +1,140 @@
+From: Tab S6 mainline port
+Subject: [PATCH] misc: fastrpc: retain verified Samsung SDSP pool ownership
+
+Samsung firmware accepts the initial HLOS-to-SDSP pool sharing but
+rejects attempts to reclaim it on remoteproc shutdown. Keep the verified
+successful assignment for the boot and reuse it on the exact same
+SDSP memory and VMID configuration. This board uses built-in FastRPC,
+so the ownership record survives all channel removals and re-probes.
+Module builds keep the original assignment behavior.
+
+Verified on the Tab S6 through two real s2idle wakeups with SLPI crash
+recovery: both re-probes reused the successful assignment, restored the
+accelerometer, and produced no SCM assignment or FastRPC probe errors.
+
+Also balance reserved-memory device association on probe errors and
+remove. Do not ignore assignment failures or accept unverified state.
+
+---
+--- a/drivers/misc/fastrpc.c
++++ b/drivers/misc/fastrpc.c
+@@ -277,6 +277,7 @@
+ 	struct list_head invoke_interrupted_mmaps;
+ 	bool secure;
+ 	bool unsigned_support;
++	bool reserved_mem_initialized;
+ 	u64 dma_mask;
+ };
+ 
+@@ -2317,6 +2318,54 @@
+ 	return -EINVAL;
+ }
+ 
++static DEFINE_MUTEX(gts6_sdsp_mem_lock);
++static struct resource gts6_sdsp_mem;
++static struct qcom_scm_vmperm gts6_sdsp_vmperms[FASTRPC_MAX_VMIDS];
++static int gts6_sdsp_vmcount;
++static bool gts6_sdsp_mem_shared;
++
++static int fastrpc_assign_sdsp_mem(struct device *dev, struct resource *res,
++				 struct fastrpc_channel_ctx *cctx)
++{
++	u64 src_perms = BIT(QCOM_SCM_VMID_HLOS);
++	int err;
++
++	if (!of_machine_is_compatible("samsung,gts6lwifi") ||
++	    IS_MODULE(CONFIG_QCOM_FASTRPC))
++		return qcom_scm_assign_mem(res->start, resource_size(res),
++					   &src_perms, cctx->vmperms, cctx->vmcount);
++
++	/* Samsung keeps this shared pool across SDSP restart for the boot. */
++	mutex_lock(&gts6_sdsp_mem_lock);
++	if (gts6_sdsp_mem_shared) {
++		if (res->start != gts6_sdsp_mem.start ||
++		    resource_size(res) != resource_size(&gts6_sdsp_mem) ||
++		    cctx->vmcount != gts6_sdsp_vmcount ||
++		    memcmp(cctx->vmperms, gts6_sdsp_vmperms,
++			   cctx->vmcount * sizeof(cctx->vmperms[0]))) {
++			err = -EINVAL;
++			dev_err(dev, "SDSP shared memory configuration changed\n");
++		} else {
++			err = 0;
++			dev_info(dev, "reusing verified SDSP shared memory assignment\n");
++		}
++		goto out;
++	}
++
++	err = qcom_scm_assign_mem(res->start, resource_size(res), &src_perms,
++				  cctx->vmperms, cctx->vmcount);
++	if (!err) {
++		gts6_sdsp_mem = *res;
++		gts6_sdsp_vmcount = cctx->vmcount;
++		memcpy(gts6_sdsp_vmperms, cctx->vmperms,
++		       cctx->vmcount * sizeof(cctx->vmperms[0]));
++		gts6_sdsp_mem_shared = true;
++	}
++out:
++	mutex_unlock(&gts6_sdsp_mem_lock);
++	return err;
++}
++
+ static int fastrpc_rpmsg_probe(struct rpmsg_device *rpdev)
+ {
+ 	struct device *rdev = &rpdev->dev;
+@@ -2339,9 +2388,6 @@
+ 		return -EINVAL;
+ 	}
+ 
+-	if (of_reserved_mem_device_init_by_idx(rdev, rdev->of_node, 0))
+-		dev_info(rdev, "no reserved DMA memory for FASTRPC\n");
+-
+ 	vmcount = of_property_read_variable_u32_array(rdev->of_node,
+ 				"qcom,vmids", &vmids[0], 0, FASTRPC_MAX_VMIDS);
+ 	if (vmcount < 0)
+@@ -2353,6 +2399,12 @@
+ 	if (!data)
+ 		return -ENOMEM;
+ 
++	err = of_reserved_mem_device_init_by_idx(rdev, rdev->of_node, 0);
++	if (err)
++		dev_info(rdev, "no reserved DMA memory for FASTRPC\n");
++	else
++		data->reserved_mem_initialized = true;
++
+ 	if (vmcount) {
+ 		data->vmcount = vmcount;
+ 		for (i = 0; i < data->vmcount; i++) {
+@@ -2363,14 +2415,10 @@
+ 
+ 	if (domain_id == SDSP_DOMAIN_ID) {
+ 		struct resource res;
+-		u64 src_perms;
+ 
+ 		err = of_reserved_mem_region_to_resource(rdev->of_node, 0, &res);
+ 		if (!err) {
+-			src_perms = BIT(QCOM_SCM_VMID_HLOS);
+-
+-			err = qcom_scm_assign_mem(res.start, resource_size(&res), &src_perms,
+-				    data->vmperms, data->vmcount);
++			err = fastrpc_assign_sdsp_mem(rdev, &res, data);
+ 			if (err)
+ 				goto err_free_data;
+ 		}
+@@ -2432,6 +2480,8 @@
+ 		misc_deregister(&data->secure_fdevice->miscdev);
+ 
+ err_free_data:
++	if (data->reserved_mem_initialized)
++		of_reserved_mem_device_release(rdev);
+ 	kfree(data);
+ 	return err;
+ }
+@@ -2475,6 +2525,8 @@
+ 		fastrpc_buf_free(cctx->remote_heap);
+ 
+ 	of_platform_depopulate(&rpdev->dev);
++	if (cctx->reserved_mem_initialized)
++		of_reserved_mem_device_release(&rpdev->dev);
+ 
+ 	fastrpc_channel_ctx_put(cctx);
+ }

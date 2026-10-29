@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Maliit (Tab S6 shortcuts)
+Comment=Maliit keyboard with the Tab S6 shortcut row
+Exec=env PATH=/usr/local/libexec/tabs6-maliit:/usr/local/bin:/usr/bin:/bin KEYBOARD_PREFIX_PATH=/home/fedora/.local/share/tabs6/maliit-root /usr/bin/maliit-keyboard
+X-KDE-Wayland-VirtualKeyboard=true
+Icon=input-keyboard-virtual
+NoDisplay=true

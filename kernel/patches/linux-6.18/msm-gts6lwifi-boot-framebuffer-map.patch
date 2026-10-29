@@ -1,0 +1,154 @@
+From: Tab S6 mainline port
+Subject: [PATCH] drm/msm: preserve reserved gts6lwifi boot framebuffer mapping
+
+The boot display can fetch its reserved framebuffer when Linux restores
+the DSI PLL. Preserve the DT-described identity mapping after attaching
+the display IOMMU domain, before DSI clocks are enabled. ARM SMMU
+creates page tables on attach. Reserve the range in GPUVM and the
+managed drm_mm allocator so later scanout allocations cannot collide.
+Scope this to the gts6lwifi MDSS device and leave controller state
+intact.
+
+---
+--- a/drivers/gpu/drm/msm/msm_mmu.h
++++ b/drivers/gpu/drm/msm/msm_mmu.h
+@@ -57,6 +57,10 @@
+ 	void *arg;
+ 	enum msm_mmu_type type;
+ 
++	/* Reserved identity mapping for the display boot framebuffer. */
++	u64 firmware_iova;
++	u64 firmware_size;
++
+ 	/**
+ 	 * @prealloc: pre-allocated pages for pgtable
+ 	 *
+@@ -72,6 +76,8 @@
+ 	mmu->dev = dev;
+ 	mmu->funcs = funcs;
+ 	mmu->type = type;
++	mmu->firmware_iova = 0;
++	mmu->firmware_size = 0;
+ }
+ 
+ struct msm_mmu *msm_iommu_new(struct device *dev, unsigned long quirks);
+--- a/drivers/gpu/drm/msm/msm_iommu.c
++++ b/drivers/gpu/drm/msm/msm_iommu.c
+@@ -7,6 +7,8 @@
+ #include <linux/adreno-smmu-priv.h>
+ #include <linux/io-pgtable.h>
+ #include <linux/kmemleak.h>
++#include <linux/of.h>
++#include <linux/of_iommu.h>
+ #include "msm_drv.h"
+ #include "msm_gpu_trace.h"
+ #include "msm_mmu.h"
+@@ -720,6 +722,40 @@
+ 		.set_stall = msm_iommu_set_stall,
+ };
+ 
++/* Keep the reserved boot scanout valid while replacing the display domain. */
++static int msm_iommu_map_boot_framebuffer(struct msm_iommu *iommu)
++{
++	struct device *dev = iommu->base.dev;
++	struct iommu_resv_region *region;
++	LIST_HEAD(regions);
++	int ret = 0;
++
++	if (!of_machine_is_compatible("samsung,gts6lwifi") ||
++	    !of_device_is_compatible(dev->of_node, "qcom,sm8150-mdss"))
++		return 0;
++
++	of_iommu_get_resv_regions(dev, &regions);
++	list_for_each_entry(region, &regions, list) {
++		if (region->type != IOMMU_RESV_DIRECT)
++			continue;
++		/* The board has one framebuffer reservation, not arbitrary RAM. */
++		if (iommu->base.firmware_size) {
++			ret = -EINVAL;
++			break;
++		}
++		ret = iommu_map(iommu->domain, region->start, region->start,
++				region->length, region->prot, GFP_KERNEL);
++		if (ret)
++			break;
++		iommu->base.firmware_iova = region->start;
++		iommu->base.firmware_size = region->length;
++		dev_info(dev, "mapped reserved boot framebuffer %pa/%zx\n",
++			 &region->start, region->length);
++	}
++	iommu_put_resv_regions(dev, &regions);
++	return ret;
++}
++
+ struct msm_mmu *msm_iommu_new(struct device *dev, unsigned long quirks)
+ {
+ 	struct iommu_domain *domain;
+@@ -753,6 +789,15 @@
+ 		return ERR_PTR(ret);
+ 	}
+ 
++	/* ARM SMMU creates page tables on attach; DSI clocks are still off. */
++	ret = msm_iommu_map_boot_framebuffer(iommu);
++	if (ret) {
++		iommu_detach_device(domain, dev);
++		iommu_domain_free(domain);
++		kfree(iommu);
++		return ERR_PTR(ret);
++	}
++
+ 	return &iommu->base;
+ }
+ 
+--- a/drivers/gpu/drm/msm/msm_gem.h
++++ b/drivers/gpu/drm/msm/msm_gem.h
+@@ -106,6 +106,9 @@
+ 	 * Protected by vm lock.  See msm_gem_lock_vm_and_obj(), for ex.
+ 	 */
+ 	struct drm_mm mm;
++
++	/** @firmware_node: Excludes boot scanout from managed VA allocation. */
++	struct drm_mm_node firmware_node;
+ 
+ 	/** @mmu: The mmu object which manages the pgtables */
+ 	struct msm_mmu *mmu;
+--- a/drivers/gpu/drm/msm/msm_gem_vma.c
++++ b/drivers/gpu/drm/msm/msm_gem_vma.c
+@@ -160,6 +160,8 @@
+ {
+ 	struct msm_gem_vm *vm = container_of(gpuvm, struct msm_gem_vm, base);
+ 
++	if (drm_mm_node_allocated(&vm->firmware_node))
++		drm_mm_remove_node(&vm->firmware_node);
+ 	drm_mm_takedown(&vm->mm);
+ 	if (vm->mmu)
+ 		vm->mmu->funcs->destroy(vm->mmu);
+@@ -833,7 +835,8 @@
+ 	}
+ 
+ 	drm_gpuvm_init(&vm->base, name, flags, drm, dummy_gem,
+-		       va_start, va_size, 0, 0, &msm_gpuvm_ops);
++		       va_start, va_size, mmu->firmware_iova,
++		       mmu->firmware_size, &msm_gpuvm_ops);
+ 	drm_gem_object_put(dummy_gem);
+ 
+ 	vm->mmu = mmu;
+@@ -841,6 +844,18 @@
+ 	vm->managed = managed;
+ 
+ 	drm_mm_init(&vm->mm, va_start, va_size);
++	if (mmu->firmware_size) {
++		vm->firmware_node.start = mmu->firmware_iova;
++		vm->firmware_node.size = mmu->firmware_size;
++		ret = drm_mm_reserve_node(&vm->mm, &vm->firmware_node);
++		if (ret) {
++			/* The caller retains MMU ownership on creation failure. */
++			vm->mmu = NULL;
++			drm_gpuvm_put(&vm->base);
++			return ERR_PTR(ret);
++		}
++	}
++
+ 
+ 	/*
+ 	 * We don't really need vm log for kernel managed VMs, as the kernel
